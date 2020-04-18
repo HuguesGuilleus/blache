@@ -3,9 +3,11 @@ package generator
 import (
 	"./cpumutex"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -13,7 +15,7 @@ import (
 // All the options for one generation
 type Option struct {
 	// One region file.
-	Region string
+	Regions string
 	// The duration between two log of the generation progress.
 	// If zero, no log.
 	PrintDuration time.Duration
@@ -51,8 +53,36 @@ func Gen(option Option) {
 
 	gen.print()
 
-	gen.wg.Add(1)
-	go gen.addRegion(gen.Region)
+	for r := range gen.listRegion() {
+		gen.wg.Add(1)
+		gen.nbChunckSum += 1024
+		go gen.addRegion(r)
+	}
+}
+
+// List the regions from MAC file into Option.Regions
+func (g *generator) listRegion() (r chan string) {
+	r = make(chan string, 2)
+
+	go func() {
+		defer close(r)
+
+		f, err := ioutil.ReadDir(g.Regions)
+		if err != nil {
+			log.Println("[ERROR] read ", g.Regions, err)
+			return
+		}
+
+		for _, f := range f {
+			n := f.Name()
+			if f.IsDir() || !strings.HasSuffix(n, ".mca") {
+				continue
+			}
+			r <- filepath.Join(g.Regions, n)
+		}
+	}()
+
+	return
 }
 
 // Add a new region
@@ -76,17 +106,19 @@ func (g *generator) print() {
 	}
 
 	g.begin = time.Now()
-	g.nbChunckSum = 1024
+
+	format := "\033[2K   %3d%% %5d/%-5d %s\033[50D"
 
 	go func() {
 		for range time.NewTicker(g.PrintDuration).C {
 			if g.nbChunckOk == 0 {
+				fmt.Printf(format, 0, 0, 0, "")
 				continue
 			}
 			wait := (time.Since(g.begin) *
 				time.Duration((g.nbChunckSum-g.nbChunckOk)/g.nbChunckOk)).
 				Round(time.Millisecond)
-			fmt.Printf("\033[2K   %3d%% %5d/%-5d %s\033[50D",
+			fmt.Printf(format,
 				g.nbChunckOk*100/g.nbChunckSum,
 				g.nbChunckOk,
 				g.nbChunckSum,
