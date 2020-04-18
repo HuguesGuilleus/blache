@@ -107,22 +107,16 @@ func (g *generator) print() {
 
 	g.begin = time.Now()
 
-	format := "\033[2K   %3d%% %5d/%-5d %s\033[50D"
-
 	go func() {
 		for range time.NewTicker(g.PrintDuration).C {
-			if g.nbChunckOk == 0 {
-				fmt.Printf(format, 0, 0, 0, "")
-				continue
-			}
-			wait := (time.Since(g.begin) *
-				time.Duration((g.nbChunckSum-g.nbChunckOk)/g.nbChunckOk)).
-				Round(time.Millisecond)
-			fmt.Printf(format,
+			wait := float64(time.Since(g.begin)) *
+				float64(g.nbChunckSum-g.nbChunckOk) /
+				float64(g.nbChunckOk)
+			fmt.Printf("\033[2K  %2d%%  %#6d/%-6d  %s\033[50D",
 				g.nbChunckOk*100/g.nbChunckSum,
 				g.nbChunckOk,
 				g.nbChunckSum,
-				wait)
+				time.Duration(wait).Round(time.Millisecond))
 		}
 	}()
 }
