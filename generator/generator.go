@@ -1,8 +1,9 @@
 package generator
 
 import (
-	// "log"
 	"./cpumutex"
+	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -26,6 +27,11 @@ type generator struct {
 	chunck   cpumutex.M
 	wg       sync.WaitGroup
 	outBiome string
+
+	// For print
+	begin       time.Time
+	nbChunckOk  int // the chunck generated
+	nbChunckSum int // the total number of chunck
 }
 
 func Gen(option Option) {
@@ -38,7 +44,12 @@ func Gen(option Option) {
 	}
 	defer gen.wg.Wait()
 
-	os.MkdirAll(gen.outBiome, 0774)
+	if err := os.MkdirAll(gen.outBiome, 0774); err != nil {
+		log.Println("[ERROR]", err)
+		return
+	}
+
+	gen.print()
 
 	gen.wg.Add(1)
 	go gen.addRegion(gen.Region)
@@ -56,4 +67,30 @@ func (g *generator) addRegion(file string) {
 		g:    g,
 	}
 	r.parse()
+}
+
+// Print the progress.
+func (g *generator) print() {
+	if g.PrintDuration == 0 {
+		return
+	}
+
+	g.begin = time.Now()
+	g.nbChunckSum = 1024
+
+	go func() {
+		for range time.NewTicker(g.PrintDuration).C {
+			if g.nbChunckOk == 0 {
+				continue
+			}
+			wait := (time.Since(g.begin) *
+				time.Duration((g.nbChunckSum-g.nbChunckOk)/g.nbChunckOk)).
+				Round(time.Millisecond)
+			fmt.Printf("\033[2K   %3d%% %5d/%-5d %s\033[50D",
+				g.nbChunckOk*100/g.nbChunckSum,
+				g.nbChunckOk,
+				g.nbChunckSum,
+				wait)
+		}
+	}()
 }

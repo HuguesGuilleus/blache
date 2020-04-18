@@ -29,12 +29,14 @@ func (r *region) parse() {
 	_, f := filepath.Split(r.file)
 	if _, err := fmt.Sscanf(f, "r.%d.%d.mca", &r.X, &r.Z); err != nil {
 		log.Println("[ERROR] read X end Z from file name:", err)
+		r.g.nbChunckOk += 1024
 		return
 	}
 
 	data, err := ioutil.ReadFile(r.file)
 	if err != nil {
 		log.Println("[ERROR] read:", r.file, err)
+		r.g.nbChunckOk += 1024
 		return
 	}
 
@@ -44,12 +46,14 @@ func (r *region) parse() {
 		for z := 0; z < 32; z++ {
 			offset := 4 * (x + z*32)
 			if bytesToInt(data[offset:offset+4]) == 0 {
+				r.g.nbChunckOk++
 				continue
 			}
 			addr := 4096 * (bytesToInt(data[offset : offset+3]))
 			l := bytesToInt(data[addr : addr+4])
 			if typeOfCompress := data[addr+4]; typeOfCompress != 2 {
 				log.Print("Unknown compress (2):", typeOfCompress)
+				r.g.nbChunckOk++
 				continue
 			}
 
@@ -63,7 +67,10 @@ func (r *region) parse() {
 }
 
 func (r *region) addChunck(data []byte, x, z int) {
-	defer r.wg.Done()
+	defer func() {
+		r.wg.Done()
+		r.g.nbChunckOk++
+	}()
 
 	c, err := reginParseChunck(data)
 	if err != nil {

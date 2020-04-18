@@ -18,7 +18,7 @@ func main() {
 	}(time.Now())
 
 	generator.Gen(generator.Option{
-		// PrintDuration: time.Second / time.Duration(5),
+		PrintDuration: time.Millisecond * time.Duration(100),
 		Region:        "data/r.-1.-1.mca",
 		// Region:        "data/r.0.0.mca",
 	})
