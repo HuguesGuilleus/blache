@@ -27,6 +27,7 @@ class Viewer {
 	}
 	// Draw all the image
 	drawAll() {
+		this.iteration++;
 		document.location.hash = this.hashGet();
 		this.ctx.fillStyle = "black";
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
