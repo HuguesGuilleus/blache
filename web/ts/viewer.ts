@@ -3,17 +3,19 @@ const REGION_SIZE: number = 16 * 32;
 class Viewer {
 	canvas;
 	ctx: CanvasRenderingContext2D;
-	posX: number = -REGION_SIZE;
-	posZ: number = -REGION_SIZE;
+	posX: number = 0;
+	posZ: number = 0;
 	size: number = REGION_SIZE; // the size of one region.
 	tileType: string = "biome";
-	constructor(id: string) {
+	iteration: number = 0;// the number of draw
+	constructor(id: string, h: string) {
 		this.canvas = document.getElementById('canvas2d');
 		if (this.canvas === null) throw "id no match";
 
 		this.ctx = this.canvas.getContext('2d');
 		if (this.ctx === null) throw "no canvas contex";
 
+		this.hashSet(h);
 		this.resize();
 		window.addEventListener("load", () => this.resize());
 		window.addEventListener("resize", () => this.resize());
@@ -35,30 +37,50 @@ class Viewer {
 	}
 	// Draw one Image
 	async drawImage(canvasX: number, canvasZ: number) {
-		let l: number = this.size;
+		const it: number = this.iteration;
+		const l: number = this.size;
 		try {
 			let x: number = this.stdCoord(this.posX, canvasX);
 			let z: number = this.stdCoord(this.posZ, canvasZ);
-			let dx: number = canvasX - this.posX % REGION_SIZE;
-			let dz: number = canvasZ - this.posZ % REGION_SIZE;
+			let dx: number = canvasX - this.posX % l;
+			let dz: number = canvasZ - this.posZ % l;
 			// Dessine l'image
 			let img = await download(x, z, this.tileType);
-			this.ctx.drawImage(img, dx, dz, REGION_SIZE, REGION_SIZE);
+			if (this.iteration !== it) return;
+			this.ctx.imageSmoothingEnabled = false;
+			this.ctx.drawImage(img, dx, dz, l, l);
 			// Grille
 			this.ctx.strokeStyle = "red";
 			this.ctx.lineWidth = 3.0;
-			this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`))
+			this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`));
 		} catch (error) {
+			if (this.iteration !== it) return;
 			this.ctx.fillStyle = "black";
 			this.ctx.fillRect(canvasX, canvasZ, this.size, this.size);
 		}
 	}
 	stdCoord(pos: number, canvas: number): number {
-		return Math.floor((pos + canvas) / REGION_SIZE);
+		return Math.floor((pos + canvas) / this.size);
+	}
+	hashGet(): string {
+		return btoa(JSON.stringify({
+			x: this.posX,
+			z: this.posZ,
+			s: this.size,
+		}));
+	}
+	hashSet(h: string): void {
+		console.log("h:", h);
+		if (h === "") return;
+		let o = JSON.parse(atob(h.slice(1)));
+		if ('x' in o) this.posX = o.x;
+		if ('z' in o) this.posZ = o.z;
+		if ('s' in o) this.size = o.s;
+		this.drawAll();
 	}
 }
 
-// Download one imge.
+// Download one image.
 function download(x: number, z: number, v: string): Promise<HTMLImageElement> {
 	return new Promise<HTMLImageElement>((resolve, reject) => {
 		let i = new Image();
@@ -70,37 +92,24 @@ function download(x: number, z: number, v: string): Promise<HTMLImageElement> {
 	});
 }
 
-const view: Viewer = new Viewer('canvas2d');
+const view: Viewer = new Viewer('canvas2d', document.location.hash);
+// view.hashSet(document.location.hash);
 
 window.addEventListener("keydown", event => {
-	// console.log("event.key:", event.key);
-	switch (event.key) {
-		case 'ArrowLeft':
-			view.posX -= view.size / 2;
-			break;
-		case 'ArrowRight':
-			view.posX += view.size / 2;
-			break;
-		case 'ArrowUp':
-			view.posZ -= view.size / 2;
-			break;
-		case 'ArrowDown':
-			view.posZ += view.size / 2;
-			break;
-		case '0':
+	let f = {
+		'ArrowLeft': () => view.posX -= view.size / 2,
+		'ArrowRight': () => view.posX += view.size / 2,
+		'ArrowUp': () => view.posZ -= view.size / 2,
+		'ArrowDown': () => view.posZ += view.size / 2,
+		'-': () => view.size /= 2,
+		'+': () => view.size *= 2,
+		'0': (() => {
 			view.posX = 0;
 			view.posZ = 0;
 			view.size = REGION_SIZE;
-			break;
-		case '-':
-			view.size /= 2;
-			break;
-		case '+':
-			view.size *= 2;
-			break;
-		default:
-			return;
-	}
-
+		}),
+	}[event.key];
+	if (!f) return;
+	f();
 	view.drawAll();
 });
