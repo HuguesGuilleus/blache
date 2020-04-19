@@ -27,6 +27,7 @@ class Viewer {
 	}
 	// Draw all the image
 	drawAll() {
+		document.location.hash = this.hashGet();
 		this.ctx.fillStyle = "black";
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 		for (let x = 0; x < this.canvas.width; x += this.size) {
@@ -70,7 +71,6 @@ class Viewer {
 		}));
 	}
 	hashSet(h: string): void {
-		console.log("h:", h);
 		if (h === "") return;
 		let o = JSON.parse(atob(h.slice(1)));
 		if ('x' in o) this.posX = o.x;
@@ -93,7 +93,6 @@ function download(x: number, z: number, v: string): Promise<HTMLImageElement> {
 }
 
 const view: Viewer = new Viewer('canvas2d', document.location.hash);
-// view.hashSet(document.location.hash);
 
 window.addEventListener("keydown", event => {
 	let f = {
