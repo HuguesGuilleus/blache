@@ -72,11 +72,15 @@ class Viewer {
 		}));
 	}
 	hashSet(h: string): void {
-		if (h === "") return;
-		let o = JSON.parse(atob(h.slice(1)));
-		if ('x' in o) this.posX = o.x;
-		if ('z' in o) this.posZ = o.z;
-		if ('s' in o) this.size = o.s;
+		let c;
+		try {
+			c = JSON.parse(atob(h.replace(/^#/, ""))) || {};
+		} catch (_) {
+			c = {};
+		}
+		this.posX = Number(c.x) || 0;
+		this.posZ = Number(c.z) || 0;
+		this.size = Number(c.s) || REGION_SIZE;
 		this.drawAll();
 	}
 }
