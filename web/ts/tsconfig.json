@@ -1,0 +1,10 @@
+{
+	"compilerOptions": {
+		"removeComments": true,
+		"lib": ["es2018", "dom"],
+		"outFile": "../app.js"
+	},
+	"include": [
+		"*.ts"
+	]
+}

@@ -124,7 +124,7 @@ func subImage(img *image.RGBA, chunckX, chunckZ int) imgSetRGBA {
 
 // Save the images.
 func (r *region) imgSave() {
-	f := fmt.Sprintf("dist/biome/%d-%d.png", r.X, r.Z)
+	f := fmt.Sprintf("dist/biome/%d.%d.png", r.X, r.Z)
 	r.g.wg.Add(1)
 	go saveImage(f, r.biome, &r.g.wg)
 }
