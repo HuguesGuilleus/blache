@@ -21,14 +21,18 @@ type Option struct {
 	PrintDuration time.Duration
 	// The file output directory. If empty string, it will be "dist/".
 	Out string
+	// The path to data pack (zip format).
+	DataPack string
 }
 
 type generator struct {
 	Option
-	region   cpumutex.M
-	chunck   cpumutex.M
-	wg       sync.WaitGroup
-	outBiome string
+	colorBloc colorBloc
+	region    cpumutex.M
+	chunck    cpumutex.M
+	wg        sync.WaitGroup
+	outBiome  string
+	outBloc   string
 
 	// For print
 	begin       time.Time
@@ -43,10 +47,20 @@ func Gen(option Option) {
 	gen := generator{
 		Option:   option,
 		outBiome: filepath.Join(option.Out, "biome"),
+		outBloc:  filepath.Join(option.Out, "bloc"),
 	}
 	defer gen.wg.Wait()
 
+	if err := gen.colorBloc.Load(option.DataPack); err != nil {
+		log.Println("[ERROR] in load data pack:", err)
+		return
+	}
+
 	if err := os.MkdirAll(gen.outBiome, 0774); err != nil {
+		log.Println("[ERROR]", err)
+		return
+	}
+	if err := os.MkdirAll(gen.outBloc, 0774); err != nil {
 		log.Println("[ERROR]", err)
 		return
 	}

@@ -19,6 +19,7 @@ type region struct {
 	g     *generator
 	file  string // The MCA file
 	biome *image.RGBA
+	bloc  *image.RGBA
 	// For waiting image generation from chunck
 	wg sync.WaitGroup
 }
@@ -41,6 +42,7 @@ func (r *region) parse() {
 	}
 
 	r.biome = image.NewRGBA(image.Rect(0, 0, 32*16, 32*16))
+	r.bloc = image.NewRGBA(image.Rect(0, 0, 32*16, 32*16))
 
 	for x := 0; x < 32; x++ {
 		for z := 0; z < 32; z++ {
@@ -81,6 +83,7 @@ func (r *region) addChunck(data []byte, x, z int) {
 	c.x = x
 	c.z = z
 	c.biome = subImage(r.biome, x, z)
+	c.bloc = subImage(r.bloc, x, z)
 	c.region = r
 
 	c.draw()
@@ -124,9 +127,10 @@ func subImage(img *image.RGBA, chunckX, chunckZ int) imgSetRGBA {
 
 // Save the images.
 func (r *region) imgSave() {
-	f := fmt.Sprintf("dist/biome/%d.%d.png", r.X, r.Z)
-	r.g.wg.Add(1)
-	go saveImage(f, r.biome, &r.g.wg)
+	f := fmt.Sprintf("%d.%d.png", r.X, r.Z)
+	r.g.wg.Add(2)
+	go saveImage("dist/biome/"+f, r.biome, &r.g.wg)
+	go saveImage("dist/bloc/"+f, r.bloc, &r.g.wg)
 }
 
 // A mutex for limit number of open image file.
