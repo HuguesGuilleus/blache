@@ -2,11 +2,13 @@ package generator
 
 import (
 	"./cpumutex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +40,9 @@ type generator struct {
 	begin       time.Time
 	nbChunckOk  int // the chunck generated
 	nbChunckSum int // the total number of chunck
+
+	// All the regions coord.
+	allRegion []string
 }
 
 func Gen(option Option) {
@@ -49,7 +54,6 @@ func Gen(option Option) {
 		outBiome: filepath.Join(option.Out, "biome"),
 		outBloc:  filepath.Join(option.Out, "bloc"),
 	}
-	defer gen.wg.Wait()
 
 	if err := gen.colorBloc.Load(option.DataPack); err != nil {
 		log.Println("[ERROR] in load data pack:", err)
@@ -72,6 +76,9 @@ func Gen(option Option) {
 		gen.nbChunckSum += 1024
 		go gen.addRegion(r)
 	}
+
+	gen.wg.Wait()
+	gen.saveRegionsList()
 }
 
 // List the regions from MAC file into Option.Regions
@@ -111,6 +118,14 @@ func (g *generator) addRegion(file string) {
 		g:    g,
 	}
 	r.parse()
+
+	g.allRegion = append(g.allRegion, fmt.Sprintf("(%d,%d)", r.X, r.Z))
+}
+
+func (g *generator) saveRegionsList() {
+	sort.Strings(g.allRegion)
+	data, _ := json.Marshal(g.allRegion)
+	ioutil.WriteFile(filepath.Join(g.Out, "regions.json"), data, 0664)
 }
 
 // Print the progress.
