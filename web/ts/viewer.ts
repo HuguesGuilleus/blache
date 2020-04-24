@@ -39,8 +39,8 @@ class Viewer {
 		document.location.hash = this.hashGet();
 		this.ctx.fillStyle = "black";
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-		for (let x = 0; x < this.canvas.width; x += this.size) {
-			for (let z = 0; z < this.canvas.height; z += this.size) {
+		for (let x = -this.size; x < this.canvas.width + this.size; x += this.size) {
+			for (let z = -this.size; z < this.canvas.height + this.size; z += this.size) {
 				this.drawImage(x, z);
 			}
 		}
@@ -49,8 +49,8 @@ class Viewer {
 	async drawImage(canvasX: number, canvasZ: number) {
 		const it: number = this.iteration;
 		const l: number = this.size;
-		let dx: number = canvasX - this.posX % l;
-		let dz: number = canvasZ - this.posZ % l;
+		let dx: number = canvasX - Math.abs(this.posX % l);
+		let dz: number = canvasZ - Math.abs(this.posZ % l);
 		try {
 			let x: number = this.stdCoord(this.posX, canvasX);
 			let z: number = this.stdCoord(this.posZ, canvasZ);
@@ -112,6 +112,25 @@ class Viewer {
 		this.tileType = t;
 		this.drawAll();
 	}
+	// Move from key event
+	moveKey(key) {
+		const f = {
+			'ArrowLeft': () => this.posX -= REGION_SIZE / 2,
+			'ArrowRight': () => this.posX += REGION_SIZE / 2,
+			'ArrowUp': () => this.posZ -= REGION_SIZE / 2,
+			'ArrowDown': () => this.posZ += REGION_SIZE / 2,
+			'-': () => this.size /= 2,
+			'+': () => this.size *= 2,
+			'0': (() => {
+				this.posX = 0;
+				this.posZ = 0;
+				this.size = REGION_SIZE;
+			}),
+		}[key];
+		if (!f) return;
+		f();
+		this.drawAll();
+	}
 }
 
 // Download one image.
@@ -129,21 +148,4 @@ const view: Viewer = new Viewer('canvas2d', document.location.hash);
 document.getElementById('tileTypeBloc').addEventListener("click", () => view.changeTileType(TileType.bloc));
 document.getElementById('tileTypeBiome').addEventListener("click", () => view.changeTileType(TileType.biome));
 
-window.addEventListener("keydown", event => {
-	let f = {
-		'ArrowLeft': () => view.posX -= view.size / 2,
-		'ArrowRight': () => view.posX += view.size / 2,
-		'ArrowUp': () => view.posZ -= view.size / 2,
-		'ArrowDown': () => view.posZ += view.size / 2,
-		'-': () => view.size /= 2,
-		'+': () => view.size *= 2,
-		'0': (() => {
-			view.posX = 0;
-			view.posZ = 0;
-			view.size = REGION_SIZE;
-		}),
-	}[event.key];
-	if (!f) return;
-	f();
-	view.drawAll();
-});
+window.addEventListener("keydown", event => view.moveKey(event.key));
