@@ -41,24 +41,26 @@ class Viewer {
 	async drawImage(canvasX: number, canvasZ: number) {
 		const it: number = this.iteration;
 		const l: number = this.size;
+		let dx: number = canvasX - this.posX % l;
+		let dz: number = canvasZ - this.posZ % l;
 		try {
 			let x: number = this.stdCoord(this.posX, canvasX);
 			let z: number = this.stdCoord(this.posZ, canvasZ);
-			let dx: number = canvasX - this.posX % l;
-			let dz: number = canvasZ - this.posZ % l;
-			// Dessine l'image
+			// Draw image
 			let img = await download(x, z, this.tileType);
 			if (this.iteration !== it) return;
 			this.ctx.imageSmoothingEnabled = false;
 			this.ctx.drawImage(img, dx, dz, l, l);
-			// Grille
+			// Grid
 			this.ctx.strokeStyle = "red";
 			this.ctx.lineWidth = 3.0;
 			this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`));
 		} catch (error) {
+			// Grid
 			if (this.iteration !== it) return;
-			this.ctx.fillStyle = "black";
-			this.ctx.fillRect(canvasX, canvasZ, this.size, this.size);
+			this.ctx.strokeStyle = "orangered";
+			this.ctx.lineWidth = 0.2;
+			this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`));
 		}
 	}
 	stdCoord(pos: number, canvas: number): number {
