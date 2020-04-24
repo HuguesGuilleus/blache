@@ -1,16 +1,21 @@
 const REGION_SIZE: number = 16 * 32;
 
+enum TileType {
+	bloc = "bloc",
+	biome = "biome",
+}
+
 class Viewer {
 	canvas;
 	ctx: CanvasRenderingContext2D;
 	posX: number = 0;
 	posZ: number = 0;
 	size: number = REGION_SIZE; // the size of one region.
-	tileType: string = "biome";
-	iteration: number = 0;// the number of draw
+	tileType: TileType;
+	iteration: number = 0; // the number of draw
 	listRegions: string[] = [];
 	constructor(id: string, h: string) {
-		this.canvas = document.getElementById('canvas2d');
+		this.canvas = document.getElementById(id);
 		if (this.canvas === null) throw "id no match";
 
 		this.ctx = this.canvas.getContext('2d');
@@ -58,14 +63,13 @@ class Viewer {
 			// Grid
 			this.ctx.strokeStyle = "red";
 			this.ctx.lineWidth = 3.0;
-			this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`));
 		} catch (error) {
 			// Grid
 			if (this.iteration !== it) return;
 			this.ctx.strokeStyle = "orangered";
 			this.ctx.lineWidth = 0.2;
-			this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`));
 		}
+		this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`));
 	}
 	stdCoord(pos: number, canvas: number): number {
 		return Math.floor((pos + canvas) / this.size);
@@ -86,6 +90,7 @@ class Viewer {
 			x: this.posX,
 			z: this.posZ,
 			s: this.size,
+			t: this.tileType,
 		}));
 	}
 	hashSet(h: string): void {
@@ -95,26 +100,34 @@ class Viewer {
 		} catch (_) {
 			c = {};
 		}
+		this.tileType = (c.t in TileType) ? c.t : TileType.bloc;
 		this.posX = Number(c.x) || 0;
 		this.posZ = Number(c.z) || 0;
 		this.size = Number(c.s) || REGION_SIZE;
 		this.drawAll();
 	}
+	// Change the tile type
+	changeTileType(t: TileType) {
+		if (t == this.tileType) return;
+		this.tileType = t;
+		this.drawAll();
+	}
 }
 
 // Download one image.
-function download(x: number, z: number, v: string): Promise<HTMLImageElement> {
+function download(x: number, z: number, t: TileType): Promise<HTMLImageElement> {
 	return new Promise<HTMLImageElement>((resolve, reject) => {
 		let i = new Image();
-		i.src = `${v}/${x}.${z}.png`;
-		i.onload = () => {
-			resolve(i);
-		};
+		i.src = `${t}/${x}.${z}.png`;
+		i.onload = () => resolve(i);
 		i.onerror = () => reject(null);
 	});
 }
 
 const view: Viewer = new Viewer('canvas2d', document.location.hash);
+
+document.getElementById('tileTypeBloc').addEventListener("click", () => view.changeTileType(TileType.bloc));
+document.getElementById('tileTypeBiome').addEventListener("click", () => view.changeTileType(TileType.biome));
 
 window.addEventListener("keydown", event => {
 	let f = {

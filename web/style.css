@@ -2,4 +2,43 @@ body {
 	margin: 0px;
 	padding: 0px;
 	overflow: hidden;
+	font-family: sans-serif;
+}
+
+#tileTypeGroup {
+	position: fixed;
+	left: 2ex;
+	bottom: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.tileType {
+	display: inline-block;
+	margin: 0;
+	border-top: solid 0.3ex darkgrey;
+	vertical-align: bottom;
+	padding: 0.4ex;
+	background: dimgrey;
+	font-size: large;
+}
+.tileType:hover {
+	background: grey;
+}
+
+.tileType img {
+	display: block;
+	width: 8ex;
+}
+
+.tileType p {
+	display: none;
+	margin: 0;
+	padding: 0.3ex 0;
+	text-align: center;
+}
+
+.tileType:hover p {
+	display: block;
 }
