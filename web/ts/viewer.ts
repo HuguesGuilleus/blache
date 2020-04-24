@@ -8,12 +8,15 @@ class Viewer {
 	size: number = REGION_SIZE; // the size of one region.
 	tileType: string = "biome";
 	iteration: number = 0;// the number of draw
+	listRegions: string[] = [];
 	constructor(id: string, h: string) {
 		this.canvas = document.getElementById('canvas2d');
 		if (this.canvas === null) throw "id no match";
 
 		this.ctx = this.canvas.getContext('2d');
 		if (this.ctx === null) throw "no canvas contex";
+
+		this.initListRegions();
 
 		this.hashSet(h);
 		this.resize();
@@ -46,6 +49,7 @@ class Viewer {
 		try {
 			let x: number = this.stdCoord(this.posX, canvasX);
 			let z: number = this.stdCoord(this.posZ, canvasZ);
+			this.regionsExist(x, z);
 			// Draw image
 			let img = await download(x, z, this.tileType);
 			if (this.iteration !== it) return;
@@ -65,6 +69,17 @@ class Viewer {
 	}
 	stdCoord(pos: number, canvas: number): number {
 		return Math.floor((pos + canvas) / this.size);
+	}
+	// Download the regions list.
+	async initListRegions() {
+		this.listRegions = await (await fetch("regions.json")).json();
+		this.drawAll();
+	}
+	// Test if a region exist with its coord.
+	regionsExist(x: number, z: number) {
+		if (!this.listRegions.includes(`(${x},${z})`)) {
+			throw "region does not exist";
+		}
 	}
 	hashGet(): string {
 		return btoa(JSON.stringify({
