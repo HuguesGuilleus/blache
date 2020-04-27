@@ -5,6 +5,12 @@ enum TileType {
 	biome = "biome",
 }
 
+// Zoom change values
+enum Zoom {
+	in,
+	out,
+}
+
 class Viewer {
 	canvas;
 	ctx: CanvasRenderingContext2D;
@@ -71,6 +77,7 @@ class Viewer {
 		}
 		this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`));
 	}
+	// return the coord of a region.
 	stdCoord(pos: number, canvas: number): number {
 		return Math.floor((pos + canvas) / this.size);
 	}
@@ -112,6 +119,17 @@ class Viewer {
 		this.tileType = t;
 		this.drawAll();
 	}
+	// Set the zoom of the viewer.
+	zoomSet(z: Zoom) {
+		switch (z) {
+			case Zoom.in:
+				this.size = Math.min(this.size * 2, REGION_SIZE * 10);
+				break;
+			case Zoom.out:
+				this.size = Math.max(this.size / 2, REGION_SIZE / 16);
+				break;
+		}
+	}
 	// Move from key event
 	moveKey(key) {
 		const f = {
@@ -119,13 +137,17 @@ class Viewer {
 			'ArrowRight': () => this.posX += REGION_SIZE / 2,
 			'ArrowUp': () => this.posZ -= REGION_SIZE / 2,
 			'ArrowDown': () => this.posZ += REGION_SIZE / 2,
-			'-': () => this.size /= 2,
-			'+': () => this.size *= 2,
+			'-': () => this.zoomSet(Zoom.out),
+			'+': () => this.zoomSet(Zoom.in),
 			'0': (() => {
 				this.posX = 0;
 				this.posZ = 0;
 				this.size = REGION_SIZE;
 			}),
+			's': () => this.canvas.toBlob(b => userDownload(b,
+				`${document.location.hostname}_${
+				this.stdCoord(this.posX, 0)}.${
+				this.stdCoord(this.posZ, 0)}.png`)),
 		}[key];
 		if (!f) return;
 		f();
