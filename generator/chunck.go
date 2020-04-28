@@ -11,6 +11,7 @@ type chunck struct {
 	x, z   int
 	biome  imgSetRGBA
 	bloc   imgSetRGBA
+	height imgSetRGBA
 
 	// Minecraft data
 	Level struct {
@@ -67,15 +68,10 @@ func (c *chunck) draw() {
 					col := palette[sec.Y][i]
 					if col.A == 0xFF {
 						c.bloc(x, z, col)
+						h := sec.Y*16 + uint8(y)
+						c.height(x, z, color.RGBA{h, h, h, 0xFF})
 						continue nextBloc
 					}
-
-					// // Pour l'altitude
-					// if palette[sec.Y][i].A == 0xFF {
-					// 	col := sec.Y*16 + uint8(y)
-					// 	c.bloc(x, z, color.RGBA{col, col, col, 0xFF})
-					// 	continue nextBloc
-					// }
 				}
 			}
 		}

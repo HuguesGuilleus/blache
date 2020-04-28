@@ -33,8 +33,6 @@ type generator struct {
 	region    cpumutex.M
 	chunck    cpumutex.M
 	wg        sync.WaitGroup
-	outBiome  string
-	outBloc   string
 
 	// For print
 	begin       time.Time
@@ -50,9 +48,7 @@ func Gen(option Option) {
 		option.Out = "dist/"
 	}
 	gen := generator{
-		Option:   option,
-		outBiome: filepath.Join(option.Out, "biome"),
-		outBloc:  filepath.Join(option.Out, "bloc"),
+		Option: option,
 	}
 
 	if err := gen.colorBloc.Load(option.DataPack); err != nil {
@@ -60,14 +56,7 @@ func Gen(option Option) {
 		return
 	}
 
-	if err := os.MkdirAll(gen.outBiome, 0774); err != nil {
-		log.Println("[ERROR]", err)
-		return
-	}
-	if err := os.MkdirAll(gen.outBloc, 0774); err != nil {
-		log.Println("[ERROR]", err)
-		return
-	}
+	gen.makeAllDir()
 
 	gen.print()
 
@@ -148,4 +137,14 @@ func (g *generator) print() {
 				time.Duration(wait).Round(time.Millisecond))
 		}
 	}()
+}
+
+func (g *generator) makeAllDir() {
+	for _, d := range [...]string{"bloc", "bloc", "height"} {
+		dir := filepath.Join(g.Out, d)
+		if err := os.MkdirAll(dir, 0774); err != nil {
+			log.Printf("[ERROR] make dir '%s': %v\n", dir, err)
+			return
+		}
+	}
 }

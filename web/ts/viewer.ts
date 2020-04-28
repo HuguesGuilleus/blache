@@ -3,6 +3,7 @@ const REGION_SIZE: number = 16 * 32;
 enum TileType {
 	bloc = "bloc",
 	biome = "biome",
+	height = "height",
 }
 
 // Zoom change values
@@ -182,5 +183,6 @@ const view: Viewer = new Viewer('canvas2d', document.location.hash);
 
 document.getElementById('tileTypeBloc').addEventListener("click", () => view.changeTileType(TileType.bloc));
 document.getElementById('tileTypeBiome').addEventListener("click", () => view.changeTileType(TileType.biome));
+document.getElementById('tileTypeHeight').addEventListener("click", () => view.changeTileType(TileType.height));
 
 window.addEventListener("keydown", event => view.moveKey(event.key));
