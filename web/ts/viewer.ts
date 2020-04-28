@@ -30,6 +30,7 @@ class Viewer {
 		this.initListRegions();
 
 		this.hashSet(h);
+		this.moveMouse();
 		this.resize();
 		window.addEventListener("load", () => this.resize());
 		window.addEventListener("resize", () => this.resize());
@@ -152,6 +153,18 @@ class Viewer {
 		if (!f) return;
 		f();
 		this.drawAll();
+	}
+	// Set the hanlder on the canvas to set the drag move.
+	moveMouse() {
+		let lastWheel: Date = new Date();
+		this.canvas.addEventListener('wheel', event => {
+			if (event.deltaY === 0) return;
+			let now: Date = new Date();
+			if (now.valueOf() - lastWheel.valueOf() > 100) {
+				this.zoomSet(event.deltaY > 0 ? Zoom.out : Zoom.in);
+				this.drawAll();
+			}
+		});
 	}
 }
 
