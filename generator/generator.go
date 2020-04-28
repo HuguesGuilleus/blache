@@ -26,6 +26,9 @@ type Option struct {
 	Out string
 	// The path to data pack (zip format).
 	DataPack string
+	// The max number of CPU who can be used.
+	// If less 0, it will the the number of CPU.
+	CPU int
 }
 
 type generator struct {
@@ -51,6 +54,8 @@ func Gen(option Option) {
 	gen := generator{
 		Option: option,
 	}
+	gen.region.Init(option.CPU)
+	gen.chunck.Init(option.CPU)
 
 	if err := gen.colorBloc.Load(option.DataPack); err != nil {
 		log.Println("[ERROR] in load data pack:", err)
@@ -64,7 +69,6 @@ func Gen(option Option) {
 
 	for r := range gen.listRegion() {
 		gen.wg.Add(1)
-		gen.nbChunckSum += 1024
 		go gen.addRegion(r)
 	}
 
@@ -99,6 +103,7 @@ func (g *generator) listRegion() (r chan string) {
 
 // Add a new region
 func (g *generator) addRegion(file string) {
+	g.nbChunckSum += 1024
 	defer g.wg.Done()
 
 	g.region.Lock()

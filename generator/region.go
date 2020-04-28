@@ -71,6 +71,9 @@ func (r *region) parse() {
 }
 
 func (r *region) addChunck(data []byte, x, z int) {
+	r.g.chunck.Lock()
+	defer r.g.chunck.Unlock()
+
 	defer func() {
 		r.wg.Done()
 		r.g.nbChunckOk++
