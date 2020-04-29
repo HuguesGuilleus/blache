@@ -149,7 +149,7 @@ func (g *generator) print() {
 func (g *generator) makeAllDir() {
 	for _, d := range [...]string{"bloc", "biome", "height"} {
 		dir := filepath.Join(g.Out, d)
-		if err := os.MkdirAll(dir, 0774); err != nil {
+		if err := os.MkdirAll(dir, 0775); err != nil {
 			log.Printf("[ERROR] make dir '%s': %v\n", dir, err)
 			return
 		}
@@ -161,7 +161,8 @@ func (g *generator) makeAssets() {
 	a, _ := webData.AssetDir("web")
 	for _, n := range a {
 		name := filepath.Join(g.Out, n)
-		f, err := os.Create(name)
+		// f, err := os.Create(name)
+		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
 		if err != nil {
 			log.Printf("[ERROR] on create assets file '%s'\n", name, err)
 			return
