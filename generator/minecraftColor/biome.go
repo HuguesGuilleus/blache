@@ -1,4 +1,4 @@
-package biome
+package minecraftColor
 
 import (
 	"image/color"
@@ -17,7 +17,7 @@ func toRGBA(i int) color.RGBA {
 var (
 	BlackRGBA     = toRGBA(0)
 	// https://minecraft-el.gamepedia.com/Biome/ID
-	Color = [256]color.RGBA{
+	Biome = [256]color.RGBA{
 		toRGBA(0x000070), // Ocean
 		toRGBA(0x8DB360), // Plains
 		toRGBA(0xFA9418), // Desert

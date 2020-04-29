@@ -1,7 +1,7 @@
 package generator
 
 import (
-	"./biome"
+	"./minecraftColor"
 	"image/color"
 	"sort"
 )
@@ -32,7 +32,7 @@ func (c *chunck) draw() {
 	if c.setBiome() {
 		for x := 0; x < 16; x++ {
 			for z := 0; z < 16; z++ {
-				c.biome(x, z, biome.Color[c.Level.biomes[z*16+x]])
+				c.biome(x, z, minecraftColor.Biome[c.Level.biomes[z*16+x]])
 			}
 		}
 	}
@@ -101,19 +101,15 @@ func (c *chunck) setBiome() (ok bool) {
 	return false
 }
 
-// Generate the palette and standardise BlockStates
+// Generate the palette
 func (c *chunck) genPalette() (p [16][]color.RGBA) {
-	cb := &c.region.g.colorBloc
-	cb.RLock()
-	defer cb.RUnlock()
-
 	for _, sec := range c.Level.Sections {
 		y := sec.Y
 		l := len(sec.Palette)
 		p[y] = make([]color.RGBA, l, l)
 
 		for i, b := range sec.Palette {
-			p[y][i] = cb.m[b.Name]
+			p[y][i] = minecraftColor.GetBloc(b.Name)
 		}
 	}
 
