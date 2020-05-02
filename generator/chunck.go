@@ -47,22 +47,21 @@ func (c *chunck) draw() {
 		for z := 0; z < 16; z++ {
 			for _, sec := range c.Level.Sections {
 				size := 64 * len(sec.BlockStates) / 4096
-				if size != 4 {
-					continue
-				}
-				mask := int64(0xFFFF >> (16 - size))
+				mask := uint64((1 << size) - 1)
 				for y := 15; -1 < y; y-- {
 
-					pos := ((y*16+z)*16 + (15 - x)) * size
-
-					i := sec.BlockStates[pos/64]
-					if shift := 64 - size - pos%64; shift < 0 {
-						i = i<<(-shift) +
-							sec.BlockStates[pos/64+1]>>(64+shift)
+					// Source: https://wiki.vg/Chunk_Format#Chunk_Section_structure
+					position := (y*16+z)*16 + x
+					start := position * size / 64
+					end := ((position+1)*size - 1) / 64
+					offset := position * size % 64
+					i := uint64(0)
+					if start == end {
+						i = uint64(sec.BlockStates[start]>>offset) & mask
 					} else {
-						i >>= shift
+						i = uint64(sec.BlockStates[start]>>offset|
+							sec.BlockStates[end]<<(64-offset)) & mask
 					}
-					i &= mask
 
 					col := palette[sec.Y][i]
 					if col.A == 0xFF {
