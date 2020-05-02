@@ -15,8 +15,7 @@ type chunck struct {
 
 	// Minecraft data
 	Level struct {
-		Biomes   interface{} // Minecraft biomes
-		biomes   [256]byte   // standard biomes
+		Biomes   interface{}
 		Sections []struct {
 			Y       uint8
 			Palette []struct {
@@ -29,19 +28,15 @@ type chunck struct {
 
 // Draw images for one chunck.
 func (c *chunck) draw() {
-	if c.setBiome() {
+	if biomes, ok := c.setBiome(); ok {
 		for x := 0; x < 16; x++ {
 			for z := 0; z < 16; z++ {
-				c.biome(x, z, minecraftColor.Biome[c.Level.biomes[z*16+x]])
+				c.biome(x, z, minecraftColor.Biome[biomes[z*16+x]])
 			}
 		}
 	}
 
-	sort.Slice(c.Level.Sections, func(i, j int) bool {
-		return c.Level.Sections[i].Y > c.Level.Sections[j].Y
-	})
 	palette := c.genPalette()
-
 	for x := 0; x < 16; x++ {
 	nextBloc:
 		for z := 0; z < 16; z++ {
@@ -76,31 +71,35 @@ func (c *chunck) draw() {
 	}
 }
 
-// Set the biome standard.
-func (c *chunck) setBiome() (ok bool) {
+// Change Chunck.Level.Biomes to standard a array of byte.
+func (c *chunck) setBiome() (biomes [256]byte, ok bool) {
 	switch tab := c.Level.Biomes.(type) {
 	case []byte:
 		if len(tab) != 256 {
-			return false
+			return
 		}
 		for i, b := range tab {
-			c.Level.biomes[i] = b
+			biomes[i] = b
 		}
-		return true
+		ok = true
 	case []int32:
 		if len(tab) != 256 {
-			return false
+			return
 		}
 		for i, b := range tab {
-			c.Level.biomes[i] = byte(b)
+			biomes[i] = byte(b)
 		}
-		return true
+		ok = true
 	}
-	return false
+	return
 }
 
 // Generate the palette
 func (c *chunck) genPalette() (p [16][]color.RGBA) {
+	sort.Slice(c.Level.Sections, func(i, j int) bool {
+		return c.Level.Sections[i].Y > c.Level.Sections[j].Y
+	})
+
 	for _, sec := range c.Level.Sections {
 		y := sec.Y
 		size := 64 * len(sec.BlockStates) / 4096
