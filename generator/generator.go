@@ -24,8 +24,6 @@ type Option struct {
 	PrintDuration time.Duration
 	// The file output directory. If empty string, it will be "dist/".
 	Out string
-	// The path to data pack (zip format).
-	DataPack string
 	// The max number of CPU who can be used.
 	// If less 0, it will the the number of CPU.
 	CPU int
@@ -33,7 +31,6 @@ type Option struct {
 
 type generator struct {
 	Option
-	colorBloc colorBloc
 	region    cpumutex.M
 	chunck    cpumutex.M
 	wg        sync.WaitGroup
@@ -56,11 +53,6 @@ func Gen(option Option) {
 	}
 	gen.region.Init(option.CPU)
 	gen.chunck.Init(option.CPU)
-
-	if err := gen.colorBloc.Load(option.DataPack); err != nil {
-		log.Println("[ERROR] in load data pack:", err)
-		return
-	}
 
 	gen.makeAllDir()
 	gen.makeAssets()

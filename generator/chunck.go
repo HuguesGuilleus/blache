@@ -47,6 +47,9 @@ func (c *chunck) draw() {
 		for z := 0; z < 16; z++ {
 			for _, sec := range c.Level.Sections {
 				size := 64 * len(sec.BlockStates) / 4096
+				if size != 4 {
+					continue
+				}
 				mask := int64(0xFFFF >> (16 - size))
 				for y := 15; -1 < y; y-- {
 
@@ -60,10 +63,6 @@ func (c *chunck) draw() {
 						i >>= shift
 					}
 					i &= mask
-
-					if int(i) >= len(palette[sec.Y]) {
-						continue
-					}
 
 					col := palette[sec.Y][i]
 					if col.A == 0xFF {
@@ -105,7 +104,8 @@ func (c *chunck) setBiome() (ok bool) {
 func (c *chunck) genPalette() (p [16][]color.RGBA) {
 	for _, sec := range c.Level.Sections {
 		y := sec.Y
-		l := len(sec.Palette)
+		size := 64 * len(sec.BlockStates) / 4096
+		l := 1 << size
 		p[y] = make([]color.RGBA, l, l)
 
 		for i, b := range sec.Palette {

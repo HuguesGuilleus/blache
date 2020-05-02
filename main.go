@@ -20,6 +20,5 @@ func main() {
 	generator.Gen(generator.Option{
 		PrintDuration: time.Millisecond * time.Duration(100),
 		Regions:       "data/",
-		DataPack:      "data-/Xenocontendi_6.zip",
 	})
 }
