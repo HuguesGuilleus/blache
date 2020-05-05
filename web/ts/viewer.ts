@@ -166,6 +166,16 @@ class Viewer {
 				this.drawAll();
 			}
 		});
+		this.canvas.addEventListener("mousemove", e => this.printCoords(e.x, e.y));
+	}
+	// Print the current coords into #coords
+	printCoords(mx: number, mz: number) {
+		let rx = this.stdCoord(this.posX, mx);
+		let rz = this.stdCoord(this.posZ, mz);
+		let bx = (this.posX + mx) * REGION_SIZE / view.size;
+		let bz = (this.posZ + mz) * REGION_SIZE / view.size;
+		document.getElementById('coordsRegion').textContent = `(${rx},${rz})`;
+		document.getElementById('coordsBloc').textContent = `(${bx},${bz})`;
 	}
 }
 

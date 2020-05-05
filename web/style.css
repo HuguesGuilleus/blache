@@ -3,7 +3,24 @@ body {
 	padding: 0px;
 	overflow: hidden;
 	font-family: sans-serif;
+	color: black;
 }
+
+/* COORDS */
+
+#coords {
+	position: fixed;
+	left: 0;
+	top: 2ex;
+	border-right: solid 0.3ex darkgrey;
+	padding: 1ex;
+	font-size: large;
+	list-style: none;
+	text-align: right;
+	background: dimgrey;
+}
+
+/* TILE TYPE */
 
 #tileTypeGroup {
 	position: fixed;
