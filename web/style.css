@@ -20,6 +20,12 @@ body {
 	background: dimgrey;
 }
 
+#coords li>span {
+	display: inline-block;
+	min-width: 12ex;
+	text-align: left;
+}
+
 /* TILE TYPE */
 
 #tileTypeGroup {
