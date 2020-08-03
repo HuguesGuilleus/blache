@@ -133,7 +133,7 @@ class Viewer {
 		}
 	}
 	// Move from key event
-	moveKey(key) {
+	moveKey(key: string) {
 		const f = {
 			'ArrowLeft': () => this.posX -= REGION_SIZE / 2,
 			'ArrowRight': () => this.posX += REGION_SIZE / 2,
@@ -157,6 +157,20 @@ class Viewer {
 	}
 	// Set the hanlder on the canvas to set the drag move.
 	moveMouse() {
+		this.canvas.addEventListener('mousemove', event => {
+			if (!event.buttons) return;
+
+			this.posX -= event.movementX * REGION_SIZE / view.size;
+			this.posZ -= event.movementY * REGION_SIZE / view.size;
+
+			let img = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+			this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+			this.ctx.putImageData(img, event.movementX, event.movementY);
+		});
+		this.canvas.addEventListener('mouseup', () => {
+			this.drawAll();
+		});
+
 		let lastWheel: Date = new Date();
 		this.canvas.addEventListener('wheel', event => {
 			if (event.deltaY === 0) return;
