@@ -1,3 +1,7 @@
+// BSD 3-Clause License in LICENSE file at the project root.
+// Copyright (c) 2020, Hugues GUILLEUS
+// All rights reserved.
+
 package minecraftColor
 
 import (

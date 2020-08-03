@@ -1,10 +1,15 @@
-package generator
+// BSD 3-Clause License in LICENSE file at the project root.
+// Copyright (c) 2020, Hugues GUILLEUS
+// All rights reserved.
+
+package blache
 
 import (
 	"../web/webData"
 	"./cpumutex"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/cheggaaa/pb.v3"
 	"io/ioutil"
 	"log"
 	"os"
@@ -19,9 +24,8 @@ import (
 type Option struct {
 	// One region file.
 	Regions string
-	// The duration between two log of the generation progress.
-	// If zero, no log.
-	PrintDuration time.Duration
+	// Disable bar print
+	NoBar bool
 	// The file output directory. If empty string, it will be "dist/".
 	Out string
 	// The max number of CPU who can be used.
@@ -31,25 +35,30 @@ type Option struct {
 
 type generator struct {
 	Option
-	region    cpumutex.M
-	chunck    cpumutex.M
-	wg        sync.WaitGroup
+	region cpumutex.M
+	chunck cpumutex.M
+	wg     sync.WaitGroup
 
 	// For print
+	// TODO: rm these
 	begin       time.Time
 	nbChunckOk  int // the chunck generated
 	nbChunckSum int // the total number of chunck
 
 	// All the regions coord.
 	allRegion []string
+
+	err chan<- error
 }
 
-func Gen(option Option) {
+func (option Option) Gen() <-chan error {
 	if option.Out == "" {
 		option.Out = "dist/"
 	}
+	err := make(chan error)
 	gen := generator{
 		Option: option,
+		err:    err,
 	}
 	gen.region.Init(option.CPU)
 	gen.chunck.Init(option.CPU)
@@ -57,15 +66,19 @@ func Gen(option Option) {
 	gen.makeAllDir()
 	gen.makeAssets()
 
-	gen.print()
+	// gen.print()
 
 	for r := range gen.listRegion() {
 		gen.wg.Add(1)
 		go gen.addRegion(r)
 	}
 
-	gen.wg.Wait()
-	gen.saveRegionsList()
+	go func() {
+		gen.wg.Wait()
+		gen.saveRegionsList()
+		close(err)
+	}()
+	return err
 }
 
 // List the regions from MAC file into Option.Regions
@@ -118,24 +131,37 @@ func (g *generator) saveRegionsList() {
 
 // Print the progress.
 func (g *generator) print() {
-	if g.PrintDuration == 0 {
-		return
-	}
+	// if g.PrintDuration == 0 {
+	// 	return
+	// }
+	//
+	// g.begin = time.Now()
 
-	g.begin = time.Now()
+	bar := pb.New(0)
+	bar.Format("[=> ]")
+	bar.Prefix("chuncks:")
+	bar.ManualUpdate = true
+	bar.ShowElapsedTime = false
+	bar.ShowFinalTime = false
+	bar.ShowSpeed = false
+	bar.ShowTimeLeft = false
 
-	go func() {
-		for range time.NewTicker(g.PrintDuration).C {
-			wait := float64(time.Since(g.begin)) *
-				float64(g.nbChunckSum-g.nbChunckOk) /
-				float64(g.nbChunckOk)
-			fmt.Printf("\033[2K  %2d%%  %#6d/%-6d  %s\033[50D",
-				g.nbChunckOk*100/g.nbChunckSum,
-				g.nbChunckOk,
-				g.nbChunckSum,
-				time.Duration(wait).Round(time.Millisecond))
-		}
-	}()
+	// go func() {
+	// 	for range time.NewTicker(g.PrintDuration).C {
+	// 		bar.Set(g.nbChunckOk)
+	// 		bar.SetTotal(g.nbChunckSum)
+	// 		bar.Update()
+	//
+	// 		// wait := float64(time.Since(g.begin)) *
+	// 		// 	float64(g.nbChunckSum-g.nbChunckOk) /
+	// 		// 	float64(g.nbChunckOk)
+	// 		// fmt.Printf("\033[2K  %2d%%  %#6d/%-6d  %s\033[50D",
+	// 		// 	g.nbChunckOk*100/g.nbChunckSum,
+	// 		// 	g.nbChunckOk,
+	// 		// 	g.nbChunckSum,
+	// 		// 	time.Duration(wait).Round(time.Millisecond))
+	// 	}
+	// }()
 }
 
 func (g *generator) makeAllDir() {
@@ -156,7 +182,7 @@ func (g *generator) makeAssets() {
 		// f, err := os.Create(name)
 		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
 		if err != nil {
-			log.Printf("[ERROR] on create assets file '%s'\n", name, err)
+			log.Printf("[ERROR] on create assets file '%s' %v\n", name, err)
 			return
 		}
 		defer f.Close()

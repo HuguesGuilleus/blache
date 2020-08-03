@@ -1,4 +1,8 @@
-package generator
+// BSD 3-Clause License in LICENSE file at the project root.
+// Copyright (c) 2020, Hugues GUILLEUS
+// All rights reserved.
+
+package blache
 
 import (
 	"bytes"
@@ -30,7 +34,7 @@ type region struct {
 func (r *region) parse() {
 	_, f := filepath.Split(r.file)
 	if _, err := fmt.Sscanf(f, "r.%d.%d.mca", &r.X, &r.Z); err != nil {
-		log.Println("[ERROR] read X end Z from file name:", err)
+		r.g.err <- fmt.Errorf("Error when read X end Z from file name: %v", err)
 		r.g.nbChunckOk += 1024
 		return
 	}
