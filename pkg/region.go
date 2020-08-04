@@ -71,7 +71,12 @@ func (r *region) parse() {
 	}
 
 	r.wg.Wait()
-	r.imgSave()
+
+	n := fmt.Sprintf("%d.%d.png", r.X, r.Z)
+	r.g.wg.Add(3)
+	go r.g.saveImage("biome", n, r.biome)
+	go r.g.saveImage("bloc", n, r.bloc)
+	go r.g.saveImage("height", n, r.height)
 }
 
 func (r *region) addChunck(data []byte, x, z int) {
@@ -135,29 +140,13 @@ func subImage(img *image.RGBA, chunckX, chunckZ int) imgSetRGBA {
 	}
 }
 
-// Save the images.
-func (r *region) imgSave() {
-	n := fmt.Sprintf("%d.%d.png", r.X, r.Z)
-	r.g.wg.Add(3)
-	go saveImage(filepath.Join(r.g.Out, "biome", n), r.biome, &r.g.wg)
-	go saveImage(filepath.Join(r.g.Out, "bloc", n), r.bloc, &r.g.wg)
-	go saveImage(filepath.Join(r.g.Out, "height", n), r.height, &r.g.wg)
-}
+func (g *generator) saveImage(dir, f string, img *image.RGBA) {
+	defer g.wg.Done()
 
-// A mutex for limit number of open image file.
-var limitFile sync.Mutex
+	buff := bytes.Buffer{}
+	png.Encode(&buff, img)
 
-func saveImage(f string, img image.Image, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	buff := &bytes.Buffer{}
-	png.Encode(buff, img)
-
-	limitFile.Lock()
-	defer limitFile.Unlock()
-
-	err := ioutil.WriteFile(f, buff.Bytes(), 0664)
-	if err != nil {
-		log.Printf("[ERROR] on save '%s': %v\n", f, err)
+	if err := g.Out.File(dir, f, buff.Bytes()); err != nil {
+		g.err <- fmt.Errorf("save image error: %v", err)
 	}
 }

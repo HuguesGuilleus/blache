@@ -17,9 +17,12 @@ func init() {
 }
 
 func main() {
+	out := blache.NewWriterFile("dist")
 	opt := blache.Option{
 		Regions: "data1/",
+		Out:     out,
 	}
+	flag.Var(out, "out", "The output Directory")
 	flag.IntVar(&opt.CPU, "cpu", 0, "The number of core used, zero is for all core.")
 	flag.Parse()
 

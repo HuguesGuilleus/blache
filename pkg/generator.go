@@ -12,26 +12,12 @@ import (
 	"gopkg.in/cheggaaa/pb.v3"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 )
-
-// All the options for one generation
-type Option struct {
-	// One region file.
-	Regions string
-	// Disable bar print
-	NoBar bool
-	// The file output directory. If empty string, it will be "dist/".
-	Out string
-	// The max number of CPU who can be used.
-	// If less 0, it will the the number of CPU.
-	CPU int
-}
 
 type generator struct {
 	Option
@@ -52,30 +38,30 @@ type generator struct {
 }
 
 func (option Option) Gen() <-chan error {
-	if option.Out == "" {
-		option.Out = "dist/"
-	}
 	err := make(chan error)
-	gen := generator{
+	g := generator{
 		Option: option,
 		err:    err,
 	}
-	gen.region.Init(option.CPU)
-	gen.chunck.Init(option.CPU)
+	g.region.Init(option.CPU)
+	g.chunck.Init(option.CPU)
 
-	gen.makeAllDir()
-	gen.makeAssets()
+	for _, d := range [...]string{"bloc", "biome", "height"} {
+		g.Out.Dir(d)
+	}
+
+	g.makeAssets()
 
 	// gen.print()
 
-	for r := range gen.listRegion() {
-		gen.wg.Add(1)
-		go gen.addRegion(r)
+	for r := range g.listRegion() {
+		g.wg.Add(1)
+		go g.addRegion(r)
 	}
 
 	go func() {
-		gen.wg.Wait()
-		gen.saveRegionsList()
+		g.wg.Wait()
+		g.saveRegionsList()
 		close(err)
 	}()
 	return err
@@ -125,8 +111,12 @@ func (g *generator) addRegion(file string) {
 
 func (g *generator) saveRegionsList() {
 	sort.Strings(g.allRegion)
-	data, _ := json.Marshal(g.allRegion)
-	ioutil.WriteFile(filepath.Join(g.Out, "regions.json"), data, 0664)
+	data, err := json.Marshal(g.allRegion)
+	if err != nil {
+		g.err <- err
+		return
+	}
+	g.Out.File("", "regions.json", data)
 }
 
 // Print the progress.
@@ -164,28 +154,10 @@ func (g *generator) print() {
 	// }()
 }
 
-func (g *generator) makeAllDir() {
-	for _, d := range [...]string{"bloc", "biome", "height"} {
-		dir := filepath.Join(g.Out, d)
-		if err := os.MkdirAll(dir, 0775); err != nil {
-			log.Printf("[ERROR] make dir '%s': %v\n", dir, err)
-			return
-		}
-	}
-}
-
 // Write the web assets.
 func (g *generator) makeAssets() {
 	a, _ := webData.AssetDir("web")
 	for _, n := range a {
-		name := filepath.Join(g.Out, n)
-		// f, err := os.Create(name)
-		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
-		if err != nil {
-			log.Printf("[ERROR] on create assets file '%s' %v\n", name, err)
-			return
-		}
-		defer f.Close()
-		f.Write(webData.MustAsset("web/" + n))
+		g.Out.File("", n, webData.MustAsset("web/"+n))
 	}
 }
