@@ -16,7 +16,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 )
 
 type generator struct {
@@ -24,17 +23,11 @@ type generator struct {
 	region cpumutex.M
 	chunck cpumutex.M
 	wg     sync.WaitGroup
-
-	// For print
-	// TODO: rm these
-	begin       time.Time
-	nbChunckOk  int // the chunck generated
-	nbChunckSum int // the total number of chunck
+	err    chan<- error
+	bar    pb.ProgressBar
 
 	// All the regions coord.
 	allRegion []string
-
-	err chan<- error
 }
 
 func (option Option) Gen() <-chan error {
@@ -42,17 +35,18 @@ func (option Option) Gen() <-chan error {
 	g := generator{
 		Option: option,
 		err:    err,
+		bar:    *pb.New(0),
 	}
 	g.region.Init(option.CPU)
 	g.chunck.Init(option.CPU)
+	g.bar.Format("[=> ]")
+	g.bar.Prefix("chuncks:")
+	g.bar.Start()
 
 	for _, d := range [...]string{"bloc", "biome", "height"} {
 		g.Out.Dir(d)
 	}
-
 	g.makeAssets()
-
-	// gen.print()
 
 	for r := range g.listRegion() {
 		g.wg.Add(1)
@@ -94,7 +88,7 @@ func (g *generator) listRegion() (r chan string) {
 
 // Add a new region
 func (g *generator) addRegion(file string) {
-	g.nbChunckSum += 1024
+	g.bar.Total += int64(1024)
 	defer g.wg.Done()
 
 	g.region.Lock()
@@ -109,6 +103,7 @@ func (g *generator) addRegion(file string) {
 	g.allRegion = append(g.allRegion, fmt.Sprintf("(%d,%d)", r.X, r.Z))
 }
 
+// Save all the processed region coordonates into regions.json
 func (g *generator) saveRegionsList() {
 	sort.Strings(g.allRegion)
 	data, err := json.Marshal(g.allRegion)
@@ -117,41 +112,6 @@ func (g *generator) saveRegionsList() {
 		return
 	}
 	g.Out.File("", "regions.json", data)
-}
-
-// Print the progress.
-func (g *generator) print() {
-	// if g.PrintDuration == 0 {
-	// 	return
-	// }
-	//
-	// g.begin = time.Now()
-
-	bar := pb.New(0)
-	bar.Format("[=> ]")
-	bar.Prefix("chuncks:")
-	bar.ManualUpdate = true
-	bar.ShowElapsedTime = false
-	bar.ShowFinalTime = false
-	bar.ShowSpeed = false
-	bar.ShowTimeLeft = false
-
-	// go func() {
-	// 	for range time.NewTicker(g.PrintDuration).C {
-	// 		bar.Set(g.nbChunckOk)
-	// 		bar.SetTotal(g.nbChunckSum)
-	// 		bar.Update()
-	//
-	// 		// wait := float64(time.Since(g.begin)) *
-	// 		// 	float64(g.nbChunckSum-g.nbChunckOk) /
-	// 		// 	float64(g.nbChunckOk)
-	// 		// fmt.Printf("\033[2K  %2d%%  %#6d/%-6d  %s\033[50D",
-	// 		// 	g.nbChunckOk*100/g.nbChunckSum,
-	// 		// 	g.nbChunckOk,
-	// 		// 	g.nbChunckSum,
-	// 		// 	time.Duration(wait).Round(time.Millisecond))
-	// 	}
-	// }()
 }
 
 // Write the web assets.

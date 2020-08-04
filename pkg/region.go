@@ -35,14 +35,14 @@ func (r *region) parse() {
 	_, f := filepath.Split(r.file)
 	if _, err := fmt.Sscanf(f, "r.%d.%d.mca", &r.X, &r.Z); err != nil {
 		r.g.err <- fmt.Errorf("Error when read X end Z from file name: %v", err)
-		r.g.nbChunckOk += 1024
+		r.g.bar.Add(1024)
 		return
 	}
 
 	data, err := ioutil.ReadFile(r.file)
 	if err != nil {
 		log.Println("[ERROR] read:", r.file, err)
-		r.g.nbChunckOk += 1024
+		r.g.bar.Add(1024)
 		return
 	}
 
@@ -54,14 +54,14 @@ func (r *region) parse() {
 		for z := 0; z < 32; z++ {
 			offset := 4 * (x + z*32)
 			if bytesToInt(data[offset:offset+4]) == 0 {
-				r.g.nbChunckOk++
+				r.g.bar.Increment()
 				continue
 			}
 			addr := 4096 * (bytesToInt(data[offset : offset+3]))
 			l := bytesToInt(data[addr : addr+4])
 			if typeOfCompress := data[addr+4]; typeOfCompress != 2 {
 				log.Print("Unknown compress (2):", typeOfCompress)
-				r.g.nbChunckOk++
+				r.g.bar.Increment()
 				continue
 			}
 
@@ -85,7 +85,7 @@ func (r *region) addChunck(data []byte, x, z int) {
 
 	defer func() {
 		r.wg.Done()
-		r.g.nbChunckOk++
+		r.g.bar.Increment()
 	}()
 
 	c, err := reginParseChunck(data)
