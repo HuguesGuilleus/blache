@@ -7,6 +7,7 @@ package blache
 import (
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,14 +37,18 @@ type Reader interface {
 
 // An implementation of Reader who read file into a dir.
 type ReaderFile struct {
-	dir   string
-	files []os.FileInfo
+	dir     string
+	files   []os.FileInfo
+	Verbose bool
 }
 
 func NewReaderFile(dir string) *ReaderFile {
 	return &ReaderFile{dir: dir}
 }
 func (r *ReaderFile) Open() error {
+	if r.Verbose {
+		log.Printf("Open %q", r.dir)
+	}
 	files, err := ioutil.ReadDir(r.dir)
 	if err != nil {
 		return err
@@ -56,13 +61,16 @@ func (r *ReaderFile) Read() (string, []byte, error) {
 		return "", nil, io.EOF
 	}
 	n := r.files[0].Name()
+	nn := filepath.Join(r.dir, n)
 	r.files = r.files[1:]
 
 	if !strings.HasSuffix(n, ".mca") {
+		r.print("Read skip %q", nn)
 		return r.Read()
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join(r.dir, n))
+	r.print("Read %q", nn)
+	data, err := ioutil.ReadFile(nn)
 	if err != nil {
 		return "", nil, err
 	}
@@ -78,6 +86,13 @@ func (r *ReaderFile) Set(dir string) error {
 	return nil
 }
 
+// print only if verbose
+func (r *ReaderFile) print(fmt string, args ...interface{}) {
+	if r.Verbose {
+		log.Printf(fmt, args...)
+	}
+}
+
 // Used to save image or web assets. dir is the directory and can be empty.
 type Writer interface {
 	Dir(dir string) error
@@ -88,23 +103,35 @@ type Writer interface {
 // Write the file into
 // A Writer to save data into files. It implement flag.Value
 type WriterFile struct {
-	root string
-	m    sync.Mutex // used to limit the number of concurent open file.
+	root    string
+	m       sync.Mutex // used to limit the number of concurent open file.
+	Verbose bool
 }
 
 func NewWriterFile(root string) *WriterFile { return &WriterFile{root: root} }
 func (w *WriterFile) Dir(dir string) error {
 	w.m.Lock()
 	defer w.m.Unlock()
-	return os.MkdirAll(filepath.Join(w.root, dir), 0775)
+	n := filepath.Join(w.root, dir)
+	w.print("Write dir: %q", n)
+	return os.MkdirAll(n, 0775)
 }
 func (w *WriterFile) File(dir, name string, data []byte) error {
 	w.m.Lock()
 	defer w.m.Unlock()
-	return ioutil.WriteFile(filepath.Join(w.root, dir, name), data, 0664)
+	n := filepath.Join(w.root, dir, name)
+	w.print("Write file: %q", n)
+	return ioutil.WriteFile(n, data, 0664)
 }
 func (w *WriterFile) String() string { return w.root }
 func (w *WriterFile) Set(root string) error {
 	w.root = root
 	return nil
+}
+
+// print only if verbose
+func (w *WriterFile) print(fmt string, args ...interface{}) {
+	if w.Verbose {
+		log.Printf(fmt, args...)
+	}
 }

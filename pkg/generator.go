@@ -16,6 +16,7 @@ import (
 	"io"
 	"sort"
 	"sync"
+	"time"
 )
 
 type generator struct {
@@ -54,6 +55,7 @@ func (option Option) Gen() <-chan error {
 		g.bar = *pb.New(0)
 		g.bar.Format("[=> ]")
 		g.bar.Prefix("chuncks:")
+		g.bar.RefreshRate = time.Millisecond * 50
 		g.bar.Start()
 		defer g.bar.Finish()
 

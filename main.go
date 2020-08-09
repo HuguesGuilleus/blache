@@ -9,6 +9,7 @@ import (
 	"./pkg"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"time"
 )
@@ -21,12 +22,17 @@ func main() {
 		flag.PrintDefaults()
 	}
 	out := blache.NewWriterFile("dist")
+	in := blache.NewReaderFile("")
+	opt := blache.Option{
+		Out: out,
+		In:  in,
+	}
 	flag.Var(out, "out", "The output Directory")
-	opt := blache.Option{Out: out}
 	flag.IntVar(&opt.CPU, "cpu", 0, "The number of core used, zero is for all core.")
+	verbose := flag.Bool("v", false, "Verbose mode")
 	version := flag.Bool("version", false, "Print the version and exit")
 	flag.Parse()
-	opt.In = blache.NewReaderFile(flag.Arg(0))
+	in.Set(flag.Arg(0))
 
 	if *version {
 		fmt.Println("Blache")
@@ -38,12 +44,18 @@ func main() {
 		return
 	}
 
+	if *verbose {
+		log.SetPrefix("\033[1G\033[K") // go the the begin of the line and erase the line
+		in.Verbose = true
+		out.Verbose = true
+	}
+
 	defer func(before time.Time) {
 		fmt.Println("[DURATION]", time.Since(before).Round(time.Millisecond*10))
 	}(time.Now())
 
 	for err := range opt.Gen() {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, "\033[1G\033[K%v\n", err)
 	}
 }
 
