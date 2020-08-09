@@ -7,9 +7,12 @@ package blache
 import (
 	"../web/webData"
 	"./cpumutex"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"gopkg.in/cheggaaa/pb.v3"
+	"image"
+	"image/png"
 	"io"
 	"sort"
 	"sync"
@@ -97,5 +100,17 @@ func (g *generator) makeAssets() {
 	a, _ := webData.AssetDir("web")
 	for _, n := range a {
 		g.Out.File("", n, webData.MustAsset("web/"+n))
+	}
+}
+
+// Save an image of one region.
+func (g *generator) saveImage(dir, f string, img *image.RGBA) {
+	defer g.wg.Done()
+
+	buff := bytes.Buffer{}
+	png.Encode(&buff, img)
+
+	if err := g.Out.File(dir, f, buff.Bytes()); err != nil {
+		g.err <- fmt.Errorf("save image error: %v", err)
 	}
 }

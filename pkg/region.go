@@ -11,16 +11,14 @@ import (
 	"github.com/Tnze/go-mc/nbt"
 	"image"
 	"image/color"
-	"image/png"
 	"io/ioutil"
 	"log"
 	"sync"
 )
 
 type region struct {
-	X, Z int
-	g    *generator
-	// file   string // The MCA file
+	X, Z   int
+	g      *generator
 	biome  *image.RGBA
 	bloc   *image.RGBA
 	height *image.RGBA
@@ -39,24 +37,22 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		bloc:   image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
 		height: image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
 	}
-	r.g.bar.Total += int64(1024)
 
 	for x := 0; x < 32; x++ {
 		for z := 0; z < 32; z++ {
 			offset := 4 * (x + z*32)
 			if bytesToInt(data[offset:offset+4]) == 0 {
-				r.g.bar.Increment()
 				continue
 			}
 			addr := 4096 * (bytesToInt(data[offset : offset+3]))
 			l := bytesToInt(data[addr : addr+4])
 			if typeOfCompress := data[addr+4]; typeOfCompress != 2 {
 				log.Print("Unknown compress (2):", typeOfCompress)
-				r.g.bar.Increment()
 				continue
 			}
 
 			r.wg.Add(1)
+			r.g.bar.Total += 1
 			go r.addChunck(data[addr+5:addr+4+l], x, z)
 		}
 	}
@@ -82,10 +78,9 @@ func (r *region) addChunck(data []byte, x, z int) {
 
 	c, err := reginParseChunck(data)
 	if err != nil {
-		log.Println("[ERROR]", err)
+		r.g.err <- err
 		return
 	}
-
 	c.x = x
 	c.z = z
 	c.biome = subImage(r.biome, x, z)
@@ -129,16 +124,5 @@ type imgSetRGBA func(x, z int, c color.RGBA)
 func subImage(img *image.RGBA, chunckX, chunckZ int) imgSetRGBA {
 	return func(x, z int, c color.RGBA) {
 		img.SetRGBA(x+16*chunckX, z+16*chunckZ, c)
-	}
-}
-
-func (g *generator) saveImage(dir, f string, img *image.RGBA) {
-	defer g.wg.Done()
-
-	buff := bytes.Buffer{}
-	png.Encode(&buff, img)
-
-	if err := g.Out.File(dir, f, buff.Bytes()); err != nil {
-		g.err <- fmt.Errorf("save image error: %v", err)
 	}
 }
