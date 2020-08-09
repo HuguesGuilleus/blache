@@ -5,16 +5,18 @@
 package blache
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
 // All the options for one generation
 type Option struct {
-	// One region file.
-	Regions string
+	// The regions sources.
+	In Reader
 	// Disable bar print
 	NoBar bool
 	// The file output directory. If empty string, it will be "dist/".
@@ -22,6 +24,58 @@ type Option struct {
 	// The max number of CPU who can be used.
 	// If less 0, it will the the number of CPU.
 	CPU int
+}
+
+type Reader interface {
+	// Open the reader.
+	Open() error
+	// At the end of the file list, the error is EOF.
+	// Name used to get region coordonates.
+	Read() (name string, data []byte, err error)
+}
+
+// An implementation of Reader who read file into a dir.
+type ReaderFile struct {
+	dir   string
+	files []os.FileInfo
+}
+
+func NewReaderFile(dir string) *ReaderFile {
+	return &ReaderFile{dir: dir}
+}
+func (r *ReaderFile) Open() error {
+	files, err := ioutil.ReadDir(r.dir)
+	if err != nil {
+		return err
+	}
+	r.files = files
+	return nil
+}
+func (r *ReaderFile) Read() (string, []byte, error) {
+	if len(r.files) == 0 {
+		return "", nil, io.EOF
+	}
+	n := r.files[0].Name()
+	r.files = r.files[1:]
+
+	if !strings.HasSuffix(n, ".mca") {
+		return r.Read()
+	}
+
+	data, err := ioutil.ReadFile(filepath.Join(r.dir, n))
+	if err != nil {
+		return "", nil, err
+	}
+	return n, data, nil
+}
+func (r *ReaderFile) String() string { return r.dir }
+func (r *ReaderFile) Set(dir string) error {
+	if dir != "" {
+		r.dir = dir
+	} else {
+		r.dir = "."
+	}
+	return nil
 }
 
 // Used to save image or web assets. dir is the directory and can be empty.

@@ -14,14 +14,13 @@ import (
 	"image/png"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"sync"
 )
 
 type region struct {
-	X, Z   int
-	g      *generator
-	file   string // The MCA file
+	X, Z int
+	g    *generator
+	// file   string // The MCA file
 	biome  *image.RGBA
 	bloc   *image.RGBA
 	height *image.RGBA
@@ -31,24 +30,16 @@ type region struct {
 
 /* PARSING */
 
-func (r *region) parse() {
-	_, f := filepath.Split(r.file)
-	if _, err := fmt.Sscanf(f, "r.%d.%d.mca", &r.X, &r.Z); err != nil {
-		r.g.err <- fmt.Errorf("Error when read X end Z from file name: %v", err)
-		r.g.bar.Add(1024)
-		return
+func parseRegion(g *generator, x, z int, data []byte) {
+	r := region{
+		g:      g,
+		X:      x,
+		Z:      z,
+		biome:  image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
+		bloc:   image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
+		height: image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
 	}
-
-	data, err := ioutil.ReadFile(r.file)
-	if err != nil {
-		log.Println("[ERROR] read:", r.file, err)
-		r.g.bar.Add(1024)
-		return
-	}
-
-	r.biome = image.NewRGBA(image.Rect(0, 0, 32*16, 32*16))
-	r.bloc = image.NewRGBA(image.Rect(0, 0, 32*16, 32*16))
-	r.height = image.NewRGBA(image.Rect(0, 0, 32*16, 32*16))
+	r.g.bar.Total += int64(1024)
 
 	for x := 0; x < 32; x++ {
 		for z := 0; z < 32; z++ {
@@ -77,6 +68,7 @@ func (r *region) parse() {
 	go r.g.saveImage("biome", n, r.biome)
 	go r.g.saveImage("bloc", n, r.bloc)
 	go r.g.saveImage("height", n, r.height)
+	r.g.wg.Done()
 }
 
 func (r *region) addChunck(data []byte, x, z int) {
