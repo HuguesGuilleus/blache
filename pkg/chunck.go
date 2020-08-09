@@ -6,6 +6,7 @@ package blache
 
 import (
 	"./minecraftColor"
+	"fmt"
 	"image/color"
 	"sort"
 )
@@ -19,6 +20,7 @@ type chunck struct {
 
 	// Minecraft data
 	Level struct {
+		biomes   [256]byte
 		Biomes   interface{}
 		Sections []struct {
 			Y       uint8
@@ -32,11 +34,10 @@ type chunck struct {
 
 // Draw images for one chunck.
 func (c *chunck) draw() {
-	if biomes, ok := c.setBiome(); ok {
-		for x := 0; x < 16; x++ {
-			for z := 0; z < 16; z++ {
-				c.biome(x, z, minecraftColor.Biome[biomes[z*16+x]])
-			}
+	c.setBiome()
+	for x := 0; x < 16; x++ {
+		for z := 0; z < 16; z++ {
+			c.biome(x, z, minecraftColor.Biome[c.Level.biomes[z*16+x]])
 		}
 	}
 
@@ -75,26 +76,26 @@ func (c *chunck) draw() {
 	}
 }
 
-// Change Chunck.Level.Biomes to standard a array of byte.
-func (c *chunck) setBiome() (biomes [256]byte, ok bool) {
+// Change Chunck.Level.Biomes to c.Level.biomes, a array of byte.
+func (c *chunck) setBiome() {
 	switch tab := c.Level.Biomes.(type) {
 	case []byte:
-		if len(tab) != 256 {
+		if copy(c.Level.biomes[:], tab) != 256 {
+			c.region.g.err <- fmt.Errorf("In chunck (%d,%d) Chunck.Level.Biome is not a 256 len byte array: len is %d", c.x+c.region.X*32, c.z+c.region.Z*32, len(tab))
 			return
 		}
-		for i, b := range tab {
-			biomes[i] = b
-		}
-		ok = true
 	case []int32:
 		if len(tab) != 256 {
+			c.region.g.err <- fmt.Errorf("In chunck (%d,%d) Chunck.Level.Biome is not a 256 len int32 array: len is %d", c.x+c.region.X*32, c.z+c.region.Z*32, len(tab))
 			return
 		}
 		for i, b := range tab {
-			biomes[i] = byte(b)
+			c.Level.biomes[i] = byte(b)
 		}
-		ok = true
+	default:
+		c.region.g.err <- fmt.Errorf("Chunck.Level.Biome (%d,%d) is not a 256 len bytes array: %T", c.x+c.region.X*32, c.z+c.region.Z*32, tab)
 	}
+	c.Level.Biomes = nil
 	return
 }
 
