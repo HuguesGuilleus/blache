@@ -29,6 +29,8 @@ type region struct {
 /* PARSING */
 
 func parseRegion(g *generator, x, z int, data []byte) {
+	g.cpu.Lock()
+
 	r := region{
 		g:      g,
 		X:      x,
@@ -57,10 +59,11 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		}
 	}
 
-	r.wg.Wait()
-
 	n := fmt.Sprintf("%d.%d.png", r.X, r.Z)
 	r.g.wg.Add(3)
+	g.cpu.Unlock()
+	r.wg.Wait()
+
 	go r.g.saveImage("biome", n, r.biome)
 	go r.g.saveImage("bloc", n, r.bloc)
 	go r.g.saveImage("height", n, r.height)
@@ -68,8 +71,8 @@ func parseRegion(g *generator, x, z int, data []byte) {
 }
 
 func (r *region) addChunck(data []byte, x, z int) {
-	r.g.chunck.Lock()
-	defer r.g.chunck.Unlock()
+	r.g.cpu.Lock()
+	defer r.g.cpu.Unlock()
 
 	defer func() {
 		r.wg.Done()

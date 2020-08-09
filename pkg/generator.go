@@ -21,12 +21,11 @@ import (
 
 type generator struct {
 	Option
-	region cpumutex.M
-	chunck cpumutex.M
-	wg     sync.WaitGroup
-	err    chan<- error
-	bar    pb.ProgressBar
-	// All the regions coord.
+	cpu cpumutex.M
+	wg  sync.WaitGroup
+	err chan<- error
+	bar pb.ProgressBar
+	// All the region coords.
 	allRegion []string
 }
 
@@ -36,8 +35,7 @@ func (option Option) Gen() <-chan error {
 		Option: option,
 		err:    ch,
 	}
-	g.region.Init(option.CPU)
-	g.chunck.Init(option.CPU)
+	g.cpu.Init(option.CPU)
 
 	for _, d := range [...]string{"bloc", "biome", "height"} {
 		g.Out.Dir(d)
@@ -59,6 +57,7 @@ func (option Option) Gen() <-chan error {
 		g.bar.Start()
 		defer g.bar.Finish()
 
+		g.cpu.Lock()
 		for {
 			n, data, err := g.In.Read()
 			if err == io.EOF {
@@ -78,6 +77,7 @@ func (option Option) Gen() <-chan error {
 			go parseRegion(&g, x, z, data)
 			g.allRegion = append(g.allRegion, fmt.Sprintf("(%d,%d)", x, z))
 		}
+		g.cpu.Unlock()
 
 		g.wg.Wait()
 		g.saveRegionsList()
@@ -107,6 +107,8 @@ func (g *generator) makeAssets() {
 
 // Save an image of one region.
 func (g *generator) saveImage(dir, f string, img *image.RGBA) {
+	g.cpu.Lock()
+	defer g.cpu.Unlock()
 	defer g.wg.Done()
 
 	buff := bytes.Buffer{}
