@@ -22,14 +22,16 @@ type chunck struct {
 	Level struct {
 		biomes   [256]byte
 		Biomes   interface{}
-		Sections []struct {
-			Y       uint8
-			Palette []struct {
-				Name string
-			}
-			BlockStates []int64
-		}
+		Sections []section
 	}
+}
+
+type section struct {
+	Y       uint8
+	Palette []struct {
+		Name string
+	}
+	BlockStates []int64
 }
 
 // Draw images for one chunck.
@@ -80,13 +82,19 @@ func (c *chunck) draw() {
 func (c *chunck) setBiome() {
 	switch tab := c.Level.Biomes.(type) {
 	case []byte:
-		if copy(c.Level.biomes[:], tab) != 256 {
-			c.region.g.err <- fmt.Errorf("In chunck (%d,%d) Chunck.Level.Biome is not a 256 len byte array: len is %d", c.x+c.region.X*32, c.z+c.region.Z*32, len(tab))
+		if l := len(tab); l == 0 {
+			return
+		} else if l != 256 {
+			c.region.g.err <- fmt.Errorf("In chunck (%d,%d) Chunck.Level.Biome is not a 256 len byte array: len is %d", c.x+c.region.X*32, c.z+c.region.Z*32, l)
 			return
 		}
+		copy(c.Level.biomes[:], tab)
 	case []int32:
-		if len(tab) != 256 {
-			c.region.g.err <- fmt.Errorf("In chunck (%d,%d) Chunck.Level.Biome is not a 256 len int32 array: len is %d", c.x+c.region.X*32, c.z+c.region.Z*32, len(tab))
+		if l := len(tab); l == 0 {
+			return
+		} else if l != 256 {
+			c.region.g.err <- fmt.Errorf("In chunck (%d,%d) Chunck.Level.Biome is not a 256 len byte array: len is %d", c.x+c.region.X*32, c.z+c.region.Z*32, l)
+			c.region.g.err <- fmt.Errorf("In chunck (%d,%d) Chunck.Level.Biome is not a 256 len int32 array: len is %d", c.x+c.region.X*32, c.z+c.region.Z*32, l)
 			return
 		}
 		for i, b := range tab {
@@ -101,6 +109,14 @@ func (c *chunck) setBiome() {
 
 // Generate the palette
 func (c *chunck) genPalette() (p [16][]color.RGBA) {
+	secs := make([]section, 0, len(c.Level.Sections))
+	for _, s := range c.Level.Sections {
+		if len(s.BlockStates) > 0 {
+			secs = append(secs, s)
+		}
+	}
+	c.Level.Sections = secs
+
 	sort.Slice(c.Level.Sections, func(i, j int) bool {
 		return c.Level.Sections[i].Y > c.Level.Sections[j].Y
 	})

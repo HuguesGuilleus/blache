@@ -95,7 +95,7 @@ func (r *region) addChunck(data []byte, x, z int) {
 }
 
 // Decompress and parse a chunck
-func reginParseChunck(data []byte) (c *chunck, _ error) {
+func reginParseChunck(data []byte) (*chunck, error) {
 	// Decompress data
 	reader, err := zlib.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -107,8 +107,11 @@ func reginParseChunck(data []byte) (c *chunck, _ error) {
 	}
 
 	// Parse minecraft data
-	c = &chunck{}
-	return c, nbt.Unmarshal(data, c)
+	c := &chunck{}
+	if err := nbt.Unmarshal(data, c); err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // Convert a slice of bytes to int
