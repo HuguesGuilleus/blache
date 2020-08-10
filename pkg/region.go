@@ -7,6 +7,7 @@ package blache
 import (
 	"bytes"
 	"compress/zlib"
+	"encoding/json"
 	"fmt"
 	"github.com/Tnze/go-mc/nbt"
 	"image"
@@ -23,7 +24,14 @@ type region struct {
 	bloc   *image.RGBA
 	height *image.RGBA
 	// For waiting image generation from chunck
-	wg sync.WaitGroup
+	wg      sync.WaitGroup
+	structs []structure
+}
+
+type structure struct {
+	X    int    `json:"x"`
+	Z    int    `json:"z"`
+	Name string `json:"name"`
 }
 
 /* PARSING */
@@ -60,10 +68,11 @@ func parseRegion(g *generator, x, z int, data []byte) {
 	}
 
 	n := fmt.Sprintf("%d.%d.png", r.X, r.Z)
-	r.g.wg.Add(3)
+	r.g.wg.Add(4)
 	g.cpu.Unlock()
 	r.wg.Wait()
 
+	go r.saveStructs()
 	go r.g.saveImage("biome", n, r.biome)
 	go r.g.saveImage("bloc", n, r.bloc)
 	go r.g.saveImage("height", n, r.height)
@@ -91,7 +100,29 @@ func (r *region) addChunck(data []byte, x, z int) {
 	c.height = subImage(r.height, x, z)
 	c.region = r
 
+	for n := range c.Level.Structures.Starts {
+		r.structs = append(r.structs, structure{
+			X:    x,
+			Z:    z,
+			Name: n,
+		})
+	}
+
 	c.draw()
+}
+
+func (r *region) saveStructs() {
+	defer r.g.wg.Done()
+	r.g.cpu.Lock()
+	defer r.g.cpu.Unlock()
+
+	var j []byte
+	if len(r.structs) == 0 {
+		j = []byte("[]")
+	} else {
+		j, _ = json.Marshal(r.structs)
+	}
+	r.g.Out.File("structs", fmt.Sprintf("%d.%d.json", r.X, r.Z), j)
 }
 
 // Decompress and parse a chunck

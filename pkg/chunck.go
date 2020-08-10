@@ -20,9 +20,12 @@ type chunck struct {
 
 	// Minecraft data
 	Level struct {
-		biomes   [256]byte
-		Biomes   interface{}
-		Sections []section
+		biomes     [256]byte
+		Biomes     interface{}
+		Sections   []section
+		Structures struct {
+			Starts map[string]struct{}
+		}
 	}
 }
 

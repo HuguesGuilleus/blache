@@ -37,7 +37,7 @@ func (option Option) Gen() <-chan error {
 	}
 	g.cpu.Init(option.CPU)
 
-	for _, d := range [...]string{"bloc", "biome", "height"} {
+	for _, d := range [...]string{"bloc", "biome", "height", "structs"} {
 		g.Out.Dir(d)
 	}
 	g.makeAssets()
