@@ -1,212 +1,223 @@
 const REGION_SIZE: number = 16 * 32;
+const blackImage = function(): ImageData {
+	const raw = new Uint8ClampedArray(REGION_SIZE * REGION_SIZE * 4);
+	for (let i: number = 0; i < raw.length; i += 4) {
+		raw[i] = raw[i + 0] = raw[i + 1] = raw[i + 2] = 0;
+		raw[i + 3] = 255;
+	}
+	return new ImageData(raw, REGION_SIZE, REGION_SIZE);
+}();
 
 enum TileType {
-	bloc = "bloc",
-	biome = "biome",
-	height = "height",
+	bloc = 'bloc',
+	biome = 'biome',
+	height = 'height',
 }
 
-// Zoom change values
-enum Zoom {
-	in,
-	out,
-}
+type Img = ImageData | HTMLImageElement;
 
 class Viewer {
-	canvas;
-	ctx: CanvasRenderingContext2D;
+	canvas_el: HTMLCanvasElement;
+	canvas_ctx: CanvasRenderingContext2D;
+	coordsRegion: HTMLElement;
+	coordsBloc: HTMLElement;
+	regions = {
+		[TileType.bloc]: new Map(),
+		[TileType.biome]: new Map(),
+		[TileType.height]: new Map(),
+	};
+	type: TileType = TileType.bloc;
 	posX: number = 0;
 	posZ: number = 0;
-	size: number = REGION_SIZE; // the size of one region.
-	tileType: TileType;
-	iteration: number = 0; // the number of draw
-	listRegions: string[] = [];
-	constructor(id: string, h: string) {
-		this.canvas = document.getElementById(id);
-		if (this.canvas === null) throw "id no match";
+	size: number = REGION_SIZE;
 
-		this.ctx = this.canvas.getContext('2d');
-		if (this.ctx === null) throw "no canvas contex";
+	constructor() {
+		// Use to get some element into the dom.
+		function $(id: string): HTMLElement {
+			const e = document.getElementById(id);
+			if (!e) throw `Element '${id}' no found in DOM`;
+			return e;
+		}
 
-		this.initListRegions();
+		// Elements
+		this.coordsRegion = $('coordsRegion');
+		this.coordsBloc = $('coordsBloc');
+		this.canvas_el = <HTMLCanvasElement>$('canvas2d');
+		const c = this.canvas_el.getContext('2d');
+		if (!c) throw 'Can not create canvas';
+		this.canvas_ctx = c;
+		$('tileTypeBloc')
+			.addEventListener('click', () => this.typeChange(TileType.bloc));
+		$('tileTypeBiome')
+			.addEventListener('click', () => this.typeChange(TileType.biome));
+		$('tileTypeHeight')
+			.addEventListener('click', () => this.typeChange(TileType.height));
 
-		this.hashSet(h);
-		this.moveMouse();
-		this.resize();
-		window.addEventListener("load", () => this.resize());
-		window.addEventListener("resize", () => this.resize());
-	}
-	resize() {
-		this.canvas.width = window.innerWidth;
-		this.canvas.height = window.innerHeight;
-		this.drawAll();
-	}
-	// Draw all the image
-	drawAll() {
-		this.iteration++;
-		document.location.hash = this.hashGet();
-		this.ctx.fillStyle = "black";
-		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-		for (let x = -this.size; x < this.canvas.width + this.size; x += this.size) {
-			for (let z = -this.size; z < this.canvas.height + this.size; z += this.size) {
-				this.drawImage(x, z);
+		// Download regions list
+		fetch('regions.json')
+			.then(rep => rep.json())
+			.then((rs: string[]) => {
+				for (let c of rs) {
+					const k = c.replace(/^\((.*)\)$/, "$1");
+					this.regions[TileType.bloc].set(k, null);
+					this.regions[TileType.biome].set(k, null);
+					this.regions[TileType.height].set(k, null);
+				}
+				this.drawAll();
+			});
+
+		window.addEventListener('load', () => this.resize());
+		window.addEventListener('resize', () => this.resize());
+		window.addEventListener('keydown', e => {
+			switch (e.key) {
+				case '-':
+					this.zoomOut();
+					return;
+				case '+':
+					this.zoomIn();
+					return;
+				case 'ArrowLeft':
+					this.posX -= this.size / 4;
+					break;
+				case 'ArrowRight':
+					this.posX += this.size / 4;
+					break;
+				case 'ArrowUp':
+					this.posZ -= this.size / 4;
+					break;
+				case 'ArrowDown':
+					this.posZ += this.size / 4;
+					break;
+				case '0':
+					this.posX = this.posZ = 0;
+					this.size = REGION_SIZE;
+					break;
+				case 's':
+					this.canvas_el.toBlob(b => userDownload(b ?? new Blob(),
+						`${document.location.hostname}_${
+						Math.trunc(REGION_SIZE / this.size)}_${
+						Math.floor(this.posX / this.size)}.${
+						Math.floor(this.posZ / this.size)}.png`));
+					return;
+				default:
+					return;
 			}
-		}
-	}
-	// Draw one Image
-	async drawImage(canvasX: number, canvasZ: number) {
-		const it: number = this.iteration;
-		const l: number = this.size;
-		let dx: number = canvasX - Math.abs(this.posX % l);
-		let dz: number = canvasZ - Math.abs(this.posZ % l);
-		try {
-			let x: number = this.stdCoord(this.posX, canvasX);
-			let z: number = this.stdCoord(this.posZ, canvasZ);
-			this.regionsExist(x, z);
-			// Draw image
-			let img = await download(x, z, this.tileType);
-			if (this.iteration !== it) return;
-			this.ctx.imageSmoothingEnabled = false;
-			this.ctx.drawImage(img, dx, dz, l, l);
-			// Grid
-			this.ctx.strokeStyle = "red";
-			this.ctx.lineWidth = 3.0;
-		} catch (error) {
-			// Grid
-			if (this.iteration !== it) return;
-			this.ctx.strokeStyle = "orangered";
-			this.ctx.lineWidth = 0.2;
-		}
-		this.ctx.stroke(new Path2D(`M${dx} ${dz} v${l} h${l} v${-l} z`));
-	}
-	// return the coord of a region.
-	stdCoord(pos: number, canvas: number): number {
-		return Math.floor((pos + canvas) / this.size);
-	}
-	// Download the regions list.
-	async initListRegions() {
-		this.listRegions = await (await fetch("regions.json")).json();
-		this.drawAll();
-	}
-	// Test if a region exist with its coord.
-	regionsExist(x: number, z: number) {
-		if (!this.listRegions.includes(`(${x},${z})`)) {
-			throw "region does not exist";
-		}
-	}
-	hashGet(): string {
-		return btoa(JSON.stringify({
-			x: this.posX,
-			z: this.posZ,
-			s: this.size,
-			t: this.tileType,
-		}));
-	}
-	hashSet(h: string): void {
-		let c;
-		try {
-			c = JSON.parse(atob(h.replace(/^#/, ""))) || {};
-		} catch (_) {
-			c = {};
-		}
-		this.tileType = (c.t in TileType) ? c.t : TileType.bloc;
-		this.posX = Number(c.x) || 0;
-		this.posZ = Number(c.z) || 0;
-		this.size = Number(c.s) || REGION_SIZE;
-		this.drawAll();
-	}
-	// Change the tile type
-	changeTileType(t: TileType) {
-		if (t == this.tileType) return;
-		this.tileType = t;
-		this.drawAll();
-	}
-	// Set the zoom of the viewer.
-	zoomSet(z: Zoom) {
-		switch (z) {
-			case Zoom.in:
-				this.size = Math.min(this.size * 2, REGION_SIZE * 10);
-				break;
-			case Zoom.out:
-				this.size = Math.max(this.size / 2, REGION_SIZE / 16);
-				break;
-		}
-	}
-	// Move from key event
-	moveKey(key: string) {
-		const f = {
-			'ArrowLeft': () => this.posX -= REGION_SIZE / 2,
-			'ArrowRight': () => this.posX += REGION_SIZE / 2,
-			'ArrowUp': () => this.posZ -= REGION_SIZE / 2,
-			'ArrowDown': () => this.posZ += REGION_SIZE / 2,
-			'-': () => this.zoomSet(Zoom.out),
-			'+': () => this.zoomSet(Zoom.in),
-			'0': (() => {
-				this.posX = 0;
-				this.posZ = 0;
-				this.size = REGION_SIZE;
-			}),
-			's': () => this.canvas.toBlob(b => userDownload(b,
-				`${document.location.hostname}_${
-				this.stdCoord(this.posX, 0)}.${
-				this.stdCoord(this.posZ, 0)}.png`)),
-		}[key];
-		if (!f) return;
-		f();
-		this.drawAll();
-	}
-	// Set the hanlder on the canvas to set the drag move.
-	moveMouse() {
-		this.canvas.addEventListener('mousemove', event => {
-			if (!event.buttons) return;
-
-			this.posX -= event.movementX * REGION_SIZE / view.size;
-			this.posZ -= event.movementY * REGION_SIZE / view.size;
-
-			let img = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-			this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-			this.ctx.putImageData(img, event.movementX, event.movementY);
-		});
-		this.canvas.addEventListener('mouseup', () => {
 			this.drawAll();
 		});
-
-		let lastWheel: Date = new Date();
-		this.canvas.addEventListener('wheel', event => {
-			if (event.deltaY === 0) return;
-			let now: Date = new Date();
-			if (now.valueOf() - lastWheel.valueOf() > 100) {
-				this.zoomSet(event.deltaY > 0 ? Zoom.out : Zoom.in);
-				this.drawAll();
+		this.canvas_el.addEventListener('mousemove', event => {
+			const x = Math.trunc((this.posX + event.x) * REGION_SIZE / this.size);
+			const z = Math.trunc((this.posZ + event.y) * REGION_SIZE / this.size);
+			this.coordsBloc.innerText = `${x}, ${z}`;
+			this.coordsRegion.innerText = `${Math.floor(x / REGION_SIZE)}, ${Math.floor(z / REGION_SIZE)}`;
+			if (!event.buttons) return;
+			this.posX -= event.movementX;
+			this.posZ -= event.movementY;
+			this.drawAll();
+		});
+		this.canvas_el.addEventListener('wheel', event => {
+			const d = event.deltaY;
+			if (d > 0) {
+				this.zoomOut();
+			} else if (d < 0) {
+				this.zoomIn();
 			}
 		});
-		this.canvas.addEventListener("mousemove", e => this.printCoords(e.x, e.y));
 	}
-	// Print the current coords into #coords
-	printCoords(mx: number, mz: number) {
-		let rx = this.stdCoord(this.posX, mx);
-		let rz = this.stdCoord(this.posZ, mz);
-		let bx = (this.posX + mx) * REGION_SIZE / view.size;
-		let bz = (this.posZ + mz) * REGION_SIZE / view.size;
-		document.getElementById('coordsRegion').textContent = `(${rx},${rz})`;
-		document.getElementById('coordsBloc').textContent = `(${bx},${bz})`;
-	}
-}
 
-// Download one image.
-function download(x: number, z: number, t: TileType): Promise<HTMLImageElement> {
-	return new Promise<HTMLImageElement>((resolve, reject) => {
-		let i = new Image();
+	// Edit the type of tile
+	private typeChange(t: TileType) {
+		if (t != this.type) {
+			this.type = t;
+			this.drawAll();
+		}
+	}
+	private zoomIn() {
+		if (this.size <= REGION_SIZE * 16) {
+			this.size *= 2;
+			this.drawAll();
+		}
+	}
+	private zoomOut() {
+		if (this.size >= REGION_SIZE / 16) {
+			this.size /= 2;
+			this.drawAll();
+		}
+	}
+
+	// Change the size of the canvas.
+	private resize() {
+		this.canvas_el.width = window.innerWidth;
+		this.canvas_el.height = window.innerHeight;
+		this.drawAll();
+	}
+
+	// Draw all regions.
+	private drawAll() {
+		this.canvas_ctx.fillStyle = 'black';
+		this.canvas_ctx.fillRect(0, 0, this.canvas_el.width, this.canvas_el.height);
+
+		const X = this.posX;
+		const Z = this.posZ;
+		const S = this.size;
+		const W = this.canvas_el.width;
+		const H = this.canvas_el.height;
+		const T = this.type;
+
+		// Draw regions
+		for (let cs of this.regions[this.type].keys()) {
+			const [x, z] = Coordinate.parse(cs);
+			if (
+				(x + 1) * S > X
+				&& x * S < X + W
+				&& (z + 1) * S > Z
+				&& z * S < Z + H
+			) {
+				this.drawImage(x, z, T, this.getOrDownload(x, z, T));
+			}
+		}
+	}
+
+	// Return an image for the region. If the region is'nt yet fetch, fetch it
+	// and call View.drawImage in the future.
+	private getOrDownload(x: number, z: number, t: TileType): Img {
+		const k = Coordinate.toString(x, z);
+		const img = this.regions[t].get(k);
+		if (img != null) return img;
+
+		this.regions[t].set(k, blackImage);
+		const i = new Image(REGION_SIZE, REGION_SIZE);
+		i.onload = () => {
+			this.regions[t].set(k, i);
+			this.drawImage(x, z, t, i);
+		};
 		i.src = `${t}/${x}.${z}.png`;
-		i.onload = () => resolve(i);
-		i.onerror = () => reject(null);
-	});
+
+		return blackImage;
+	}
+
+	// Draw the region image into the screen.
+	private drawImage(xa: number, za: number, t: TileType, img: Img) {
+		if (t != this.type) return;
+		const S = this.size;
+		const xr = xa * S - this.posX;
+		const zr = za * S - this.posZ;
+		if (img instanceof HTMLImageElement) {
+			this.canvas_ctx.imageSmoothingEnabled = false;
+			this.canvas_ctx.drawImage(img, xr, zr, S, S);
+		} else {
+			this.canvas_ctx.putImageData(img, xr, zr, 0, 0, S, S);
+		}
+		this.canvas_ctx.strokeStyle = 'orange';
+		this.canvas_ctx.lineWidth = 2.5;
+		this.canvas_ctx.stroke(new Path2D(`M${xr} ${zr} v${S} h${S} v${-S} z`));
+	}
 }
 
-const view: Viewer = new Viewer('canvas2d', document.location.hash);
-
-document.getElementById('tileTypeBloc').addEventListener("click", () => view.changeTileType(TileType.bloc));
-document.getElementById('tileTypeBiome').addEventListener("click", () => view.changeTileType(TileType.biome));
-document.getElementById('tileTypeHeight').addEventListener("click", () => view.changeTileType(TileType.height));
-
-window.addEventListener("keydown", event => view.moveKey(event.key));
+(function() {
+	function main() {
+		new Viewer();
+	}
+	document.readyState == 'loading' ? document.addEventListener('DOMContentLoaded', main, {
+		once: true
+	}) : main();
+}());
