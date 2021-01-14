@@ -21,7 +21,7 @@ func main() {
 		fmt.Println("  input is a directory that contain minecraft regions (*.mca)")
 		flag.PrintDefaults()
 	}
-	out := blache.NewWriterFile("dist")
+	out := blache.NewWriterFile("public")
 	in := blache.NewReaderFile("")
 	opt := blache.Option{
 		Out: out,
