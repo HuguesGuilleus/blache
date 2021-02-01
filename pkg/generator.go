@@ -96,14 +96,14 @@ func (option Option) Gen() {
 // Write directory and assets.
 func (g *generator) initOutput() error {
 	for _, d := range [...]string{"bloc", "biome", "height", "structs"} {
-		if err := g.Out.Dir(d); err != nil {
+		if err := g.Out.MkdirAll(d); err != nil {
 			return fmt.Errorf("Write directory %q fail: %w", d, err)
 		}
 	}
 
 	a, _ := webData.AssetDir("web")
 	for _, n := range a {
-		if err := g.Out.File("", n, webData.MustAsset("web/"+n)); err != nil {
+		if err := g.Out.Create("", n, webData.MustAsset("web/"+n)); err != nil {
 			return fmt.Errorf("Write assets %q fail: %w", n, err)
 		}
 	}
@@ -116,10 +116,12 @@ func (g *generator) saveRegionsList() {
 	sort.Strings(g.allRegion)
 	data, err := json.Marshal(g.allRegion)
 	if err != nil {
-		g.err <- err
+		g.Error(fmt.Errorf("Generated JSON regions fail: %w", err))
 		return
 	}
-	g.Out.File("", "regions.json", data)
+	if err := g.Out.Create("", "regions.json", data); err != nil {
+		g.Error(fmt.Errorf("Write regions.json fail: %w", err))
+	}
 }
 
 // Save an image of one region.
@@ -131,7 +133,7 @@ func (g *generator) saveImage(dir, f string, img *image.RGBA) {
 	buff := bytes.Buffer{}
 	png.Encode(&buff, img)
 
-	if err := g.Out.File(dir, f, buff.Bytes()); err != nil {
-		g.err <- fmt.Errorf("save image error: %v", err)
+	if err := g.Out.Create(dir, f, buff.Bytes()); err != nil {
+		g.Error(fmt.Errorf("save image error: %v", err))
 	}
 }

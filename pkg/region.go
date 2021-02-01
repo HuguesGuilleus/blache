@@ -85,11 +85,14 @@ func (r *region) saveStructs() {
 		var err error
 		j, err = json.Marshal(r.structs)
 		if err != nil {
-			r.g.err <- fmt.Errorf("Chunck (%d,%d), JSON structures list genration fail: %v", r.X, r.Z, err)
+			r.g.Error(fmt.Errorf("Chunck (%d,%d), JSON structures list genration fail: %w", r.X, r.Z, err))
 			return
 		}
 	}
-	r.g.Out.File("structs", fmt.Sprintf("%d.%d.json", r.X, r.Z), j)
+	n := fmt.Sprintf("%d.%d.json", r.X, r.Z)
+	if err := r.g.Out.Create("structs", n, j); err != nil {
+		r.g.Error(fmt.Errorf("Write list of structure file %q fail: %w", n, err))
+	}
 }
 
 // Convert a slice of bytes to int, with bigendian.

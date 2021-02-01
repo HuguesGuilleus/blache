@@ -14,21 +14,20 @@ import (
 )
 
 func main() {
-	out := blache.NewWriterFile("public")
-	in := blache.NewReaderFile("")
+	out := blache.NewOsCreater("public")
 	opt := blache.Option{
-		Out: out,
-		In:  in,
+		Out: &out,
 		Error: func(err error) {
 			fmt.Fprintf(os.Stderr, "\033[1G\033[K%v\n", err)
 		},
 	}
 
-	flag.Var(out, "out", "The output Directory")
+	flag.Var(&out, "out", "The output Directory")
 	flag.IntVar(&opt.CPU, "cpu", 0, "The number of core used, zero is for all core.")
 	version := flag.Bool("version", false, "Print the version and exit")
 	flag.Parse()
-	in.Set(flag.Arg(0))
+
+	opt.In = blache.NewReaderFile(flag.Arg(0))
 
 	if *version {
 		printVersion()

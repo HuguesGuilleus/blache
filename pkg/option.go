@@ -18,10 +18,10 @@ import (
 type Option struct {
 	// The regions sources.
 	In Reader
+	// The output. Must be defined.
+	Out Creator
 	// Disable bar print
 	NoBar bool
-	// The file output directory. If empty string, it will be "dist/".
-	Out Writer
 	// The max number of CPU who can be used.
 	// If less 0, it will the the number of CPU.
 	CPU int
@@ -97,46 +97,46 @@ func (r *ReaderFile) print(fmt string, args ...interface{}) {
 	}
 }
 
-// Used to save image or web assets. dir is the directory and can be empty.
-type Writer interface {
-	Dir(dir string) error
-	// The directory can be empty. It must be safe for multiple goroutine.
-	File(dir, name string, data []byte) error
+// Used to write asset web file and generated file.
+type Creator interface {
+	// Create a directory.
+	MkdirAll(dir string) error
+	// Create a file into the directory dir (can be empty) with the data.
+	// This method can be called concurrently an many many time.
+	Create(dir, name string, data []byte) error
 }
 
-// Write the file into
-// A Writer to save data into files. It implement flag.Value
-type WriterFile struct {
-	root    string
-	m       sync.Mutex // used to limit the number of concurent open file.
-	Verbose bool
+// A Creator that write directory and file into the operating system into the root.
+type OsCreator struct {
+	Root       string
+	sync.Mutex // used to limit the number of concurent open file.
 }
 
-func NewWriterFile(root string) *WriterFile { return &WriterFile{root: root} }
-func (w *WriterFile) Dir(dir string) error {
-	w.m.Lock()
-	defer w.m.Unlock()
-	n := filepath.Join(w.root, dir)
-	w.print("Write dir: %q", n)
-	return os.MkdirAll(n, 0775)
+// Create an OsCreator with the root.
+func NewOsCreater(root string) OsCreator {
+	return OsCreator{Root: root}
 }
-func (w *WriterFile) File(dir, name string, data []byte) error {
-	w.m.Lock()
-	defer w.m.Unlock()
-	n := filepath.Join(w.root, dir, name)
-	w.print("Write file: %q", n)
-	return ioutil.WriteFile(n, data, 0664)
+
+// Create the directory if it doesn't exist.
+func (c *OsCreator) MkdirAll(dir string) error {
+	return os.MkdirAll(filepath.Join(c.Root, dir), 0o775)
 }
-func (w *WriterFile) String() string { return w.root }
-func (w *WriterFile) Set(root string) error {
-	w.root = root
+
+// Create dir/name with the data.
+func (c *OsCreator) Create(dir, name string, data []byte) error {
+	c.Lock()
+	defer c.Unlock()
+	// TODO: use os #go1.16
+	return ioutil.WriteFile(filepath.Join(c.Root, dir, name), data, 0664)
+}
+
+// Set Root. Used for the package package.
+func (c *OsCreator) Set(root string) error {
+	c.Root = root
 	return nil
 }
 
-// print only if verbose
-// TODO: remove it!
-func (w *WriterFile) print(fmt string, args ...interface{}) {
-	if w.Verbose {
-		log.Printf(fmt, args...)
-	}
+// String return the root.
+func (c *OsCreator) String() string {
+	return c.Root
 }
