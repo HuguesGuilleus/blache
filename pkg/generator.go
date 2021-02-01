@@ -29,61 +29,86 @@ type generator struct {
 	allRegion []string
 }
 
-func (option Option) Gen() <-chan error {
+func (option Option) Gen() {
+	if option.Error == nil {
+		option.Error = func(error) {}
+	}
+
+	// REVIEW: Remove g.err chanel
 	ch := make(chan error)
+	go func() {
+		for err := range ch {
+			option.Error(err)
+		}
+	}()
+	defer close(ch)
+
 	g := generator{
 		Option: option,
 		err:    ch,
 	}
 	g.cpu.Init(option.CPU)
 
-	for _, d := range [...]string{"bloc", "biome", "height", "structs"} {
-		g.Out.Dir(d)
+	if err := g.initOutput(); err != nil {
+		g.Error(err)
+		return
 	}
-	g.makeAssets()
 
-	go func() {
-		defer close(ch)
-
-		if err := g.In.Open(); err != nil {
-			g.err <- fmt.Errorf("Open() error: %v", err)
-			return
-		}
-
+	if !option.NoBar {
 		g.bar = *pb.New(0)
 		g.bar.Format("[=> ]")
-		g.bar.Prefix("chuncks:")
-		g.bar.RefreshRate = time.Millisecond * 50
+		g.bar.SetRefreshRate(time.Millisecond * 100)
 		g.bar.Start()
 		defer g.bar.Finish()
+	}
 
-		g.cpu.Lock()
-		for {
-			n, data, err := g.In.Read()
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				g.err <- err
-				continue
-			}
-
-			x, z := 0, 0
-			if _, err := fmt.Sscanf(n, "r.%d.%d.mca", &x, &z); err != nil {
-				g.err <- fmt.Errorf("Error when read X end Z from file name %q: %v", n, err)
-				continue
-			}
-
-			g.wg.Add(1)
-			go parseRegion(&g, x, z, data)
-			g.allRegion = append(g.allRegion, fmt.Sprintf("(%d,%d)", x, z))
+	// TODO: rework input with fs from go1.16
+	if err := g.In.Open(); err != nil {
+		g.err <- fmt.Errorf("Open() error: %v", err)
+		return
+	}
+	g.cpu.Lock()
+	for {
+		n, data, err := g.In.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			g.err <- err
+			continue
 		}
-		g.cpu.Unlock()
 
-		g.wg.Wait()
-		g.saveRegionsList()
-	}()
+		x, z := 0, 0
+		if _, err := fmt.Sscanf(n, "r.%d.%d.mca", &x, &z); err != nil {
+			g.err <- fmt.Errorf("Error when read X end Z from file name %q: %v", n, err)
+			continue
+		}
 
-	return ch
+		g.wg.Add(1)
+		go parseRegion(&g, x, z, data)
+		g.allRegion = append(g.allRegion, fmt.Sprintf("(%d,%d)", x, z))
+	}
+	g.cpu.Unlock()
+
+	g.wg.Wait()
+	g.saveRegionsList()
+}
+
+// Write directory and assets.
+func (g *generator) initOutput() error {
+	for _, d := range [...]string{"bloc", "biome", "height", "structs"} {
+		if err := g.Out.Dir(d); err != nil {
+			return fmt.Errorf("Write directory %q fail: %w", d, err)
+		}
+	}
+
+	a, _ := webData.AssetDir("web")
+	for _, n := range a {
+		if err := g.Out.File("", n, webData.MustAsset("web/"+n)); err != nil {
+			return fmt.Errorf("Write assets %q fail: %w", n, err)
+		}
+	}
+
+	return nil
 }
 
 // Save all the processed region coordonates into regions.json
@@ -95,14 +120,6 @@ func (g *generator) saveRegionsList() {
 		return
 	}
 	g.Out.File("", "regions.json", data)
-}
-
-// Write the web assets.
-func (g *generator) makeAssets() {
-	a, _ := webData.AssetDir("web")
-	for _, n := range a {
-		g.Out.File("", n, webData.MustAsset("web/"+n))
-	}
 }
 
 // Save an image of one region.

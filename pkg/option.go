@@ -25,8 +25,11 @@ type Option struct {
 	// The max number of CPU who can be used.
 	// If less 0, it will the the number of CPU.
 	CPU int
+	// Log the error. Is not set, never output.
+	Error func(error)
 }
 
+// TODO: utiliser fs.FS #go1.16
 type Reader interface {
 	// Open the reader.
 	Open() error
@@ -87,6 +90,7 @@ func (r *ReaderFile) Set(dir string) error {
 }
 
 // print only if verbose
+// TODO: remove it
 func (r *ReaderFile) print(fmt string, args ...interface{}) {
 	if r.Verbose {
 		log.Printf(fmt, args...)
@@ -130,6 +134,7 @@ func (w *WriterFile) Set(root string) error {
 }
 
 // print only if verbose
+// TODO: remove it!
 func (w *WriterFile) print(fmt string, args ...interface{}) {
 	if w.Verbose {
 		log.Printf(fmt, args...)

@@ -26,6 +26,9 @@ func main() {
 	opt := blache.Option{
 		Out: out,
 		In:  in,
+		Error: func(err error) {
+			fmt.Fprintf(os.Stderr, "\033[1G\033[K%v\n", err)
+		},
 	}
 	flag.Var(out, "out", "The output Directory")
 	flag.IntVar(&opt.CPU, "cpu", 0, "The number of core used, zero is for all core.")
@@ -54,9 +57,7 @@ func main() {
 		fmt.Println("[DURATION]", time.Since(before).Round(time.Millisecond*10))
 	}(time.Now())
 
-	for err := range opt.Gen() {
-		fmt.Fprintf(os.Stderr, "\033[1G\033[K%v\n", err)
-	}
+	opt.Gen()
 }
 
 const license = `BSD 3-Clause License
