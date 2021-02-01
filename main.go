@@ -9,18 +9,11 @@ import (
 	"./pkg"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"time"
 )
 
 func main() {
-	flag.Usage = func() {
-		fmt.Println("Usage: $ blache [OPTION ...] input")
-		fmt.Println()
-		fmt.Println("  input is a directory that contain minecraft regions (*.mca)")
-		flag.PrintDefaults()
-	}
 	out := blache.NewWriterFile("public")
 	in := blache.NewReaderFile("")
 	opt := blache.Option{
@@ -30,38 +23,41 @@ func main() {
 			fmt.Fprintf(os.Stderr, "\033[1G\033[K%v\n", err)
 		},
 	}
+
 	flag.Var(out, "out", "The output Directory")
 	flag.IntVar(&opt.CPU, "cpu", 0, "The number of core used, zero is for all core.")
-	verbose := flag.Bool("v", false, "Verbose mode")
 	version := flag.Bool("version", false, "Print the version and exit")
 	flag.Parse()
 	in.Set(flag.Arg(0))
 
 	if *version {
-		fmt.Println("Blache")
-		fmt.Println()
-		fmt.Println("\tGit: ", meta.Git)
-		fmt.Println("\tDate:", meta.Date)
-		fmt.Println()
-		fmt.Println(license)
+		printVersion()
 		return
-	}
-
-	if *verbose {
-		log.SetPrefix("\033[1G\033[K") // go the the begin of the line and erase the line
-		in.Verbose = true
-		out.Verbose = true
 	}
 
 	defer func(before time.Time) {
 		fmt.Println("[DURATION]", time.Since(before).Round(time.Millisecond*10))
 	}(time.Now())
-
 	opt.Gen()
 }
 
-const license = `BSD 3-Clause License
-Copyright (c) 2020, Hugues GUILLEUS
+func init() {
+	flag.Usage = func() {
+		fmt.Println("Usage: $ blache [OPTION ...] input")
+		fmt.Println()
+		fmt.Println("  input is a directory that contain minecraft regions (*.mca)")
+		flag.PrintDefaults()
+	}
+}
+
+func printVersion() {
+	fmt.Println("Blache")
+	fmt.Println()
+	fmt.Println("\tGit: ", meta.Git)
+	fmt.Println("\tDate:", meta.Date)
+	fmt.Println()
+	fmt.Println(`BSD 3-Clause License
+Copyright (c) 2020, 2021, Hugues GUILLEUS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,4 +83,5 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.`
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.`)
+}
