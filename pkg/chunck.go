@@ -6,18 +6,15 @@ package blache
 
 import (
 	"./minecraftColor"
+	"bytes"
+	"compress/zlib"
+	"github.com/Tnze/go-mc/nbt"
 	"image/color"
 	"sort"
 )
 
+// On column of 16*16*256 blocks.
 type chunck struct {
-	region *region
-	x, z   int
-	biome  imgSetRGBA
-	bloc   imgSetRGBA
-	height imgSetRGBA
-
-	// Minecraft data
 	Level struct {
 		Biomes     interface{}
 		Sections   []section
@@ -27,6 +24,7 @@ type chunck struct {
 	}
 }
 
+// One section, 16*16*16 block.
 type section struct {
 	Y       uint8
 	Palette []struct {
@@ -35,11 +33,33 @@ type section struct {
 	BlockStates []int64
 }
 
-// Draw images for one chunck.
-func (c *chunck) draw() {
-	c.drawBiome()
+func (r *region) drawChunck(data []byte, x, z int) error {
+	// Decompress data and parse minecraft data
+	c := chunck{}
+	if reader, err := zlib.NewReader(bytes.NewReader(data)); err != nil {
+		return err
+	} else if err := nbt.NewDecoder(reader).Decode(&c); err != nil {
+		return err
+	}
 
+	// Save structure
+	for n := range c.Level.Structures.Starts {
+		r.structs = append(r.structs, structure{
+			X:    x,
+			Z:    z,
+			Name: n,
+		})
+	}
+
+	// Draw biome tile.
+	if err := c.drawBiome(subImage(r.biome, x, z), c.Level.Biomes); err != nil {
+		return err
+	}
+
+	// Draw bloc and height tiles.
 	palette := c.genPalette()
+	bloc := subImage(r.bloc, x, z)
+	height := subImage(r.height, x, z)
 	for x := 0; x < 16; x++ {
 	nextBloc:
 		for z := 0; z < 16; z++ {
@@ -63,15 +83,17 @@ func (c *chunck) draw() {
 
 					col := palette[sec.Y][i]
 					if col.A == 0xFF {
-						c.bloc(x, z, col)
+						bloc(x, z, col)
 						h := sec.Y*16 + uint8(y)
-						c.height(x, z, color.RGBA{h, h, h, 0xFF})
+						height(x, z, color.RGBA{h, h, h, 0xFF})
 						continue nextBloc
 					}
 				}
 			}
 		}
 	}
+
+	return nil
 }
 
 // Generate the palette

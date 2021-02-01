@@ -5,26 +5,18 @@
 package blache
 
 import (
-	"bytes"
-	"compress/zlib"
 	"encoding/json"
 	"fmt"
-	"github.com/Tnze/go-mc/nbt"
 	"image"
 	"image/color"
-	"io/ioutil"
-	"log"
-	"sync"
 )
 
 type region struct {
-	X, Z   int
-	g      *generator
-	biome  *image.RGBA
-	bloc   *image.RGBA
-	height *image.RGBA
-	// For waiting image generation from chunck
-	wg      sync.WaitGroup
+	X, Z    int
+	g       *generator
+	biome   *image.RGBA
+	bloc    *image.RGBA
+	height  *image.RGBA
 	structs []structure
 }
 
@@ -37,7 +29,10 @@ type structure struct {
 /* PARSING */
 
 func parseRegion(g *generator, x, z int, data []byte) {
+	g.bar.Total += 32*32 + 1
 	g.cpu.Lock()
+	defer g.cpu.Unlock()
+	defer g.wg.Done()
 
 	r := region{
 		g:      g,
@@ -50,67 +45,34 @@ func parseRegion(g *generator, x, z int, data []byte) {
 
 	for x := 0; x < 32; x++ {
 		for z := 0; z < 32; z++ {
+			r.g.bar.Increment()
+			// Get the chunk data position into data.
 			offset := 4 * (x + z*32)
 			if bytesToInt(data[offset:offset+4]) == 0 {
 				continue
 			}
-			addr := 4096 * (bytesToInt(data[offset : offset+3]))
+			addr := 4096 * bytesToInt(data[offset:offset+3])
 			l := bytesToInt(data[addr : addr+4])
 			if typeOfCompress := data[addr+4]; typeOfCompress != 2 {
-				log.Print("Unknown compress (2):", typeOfCompress)
+				g.err <- fmt.Errorf("In region (%d,%d), in chunck (%d,%d) Unknown compress, expected 2, found %d", r.X, r.Z, x, z, typeOfCompress)
 				continue
 			}
-
-			r.wg.Add(1)
-			r.g.bar.Total += 1
-			go r.addChunck(data[addr+5:addr+4+l], x, z)
+			if err := r.drawChunck(data[addr+5:addr+4+l], x, z); err != nil {
+				g.err <- fmt.Errorf("In region (%d,%d), in chunck (%d,%d) %w", r.X, r.Z, x, z, err)
+			}
 		}
 	}
+	r.g.bar.Increment()
 
-	n := fmt.Sprintf("%d.%d.png", r.X, r.Z)
 	r.g.wg.Add(4)
-	g.cpu.Unlock()
-	r.wg.Wait()
-
-	go r.saveStructs()
+	n := fmt.Sprintf("%d.%d.png", r.X, r.Z)
 	go r.g.saveImage("biome", n, r.biome)
 	go r.g.saveImage("bloc", n, r.bloc)
 	go r.g.saveImage("height", n, r.height)
-	r.g.wg.Done()
+	go r.saveStructs()
 }
 
-func (r *region) addChunck(data []byte, x, z int) {
-	r.g.cpu.Lock()
-	defer r.g.cpu.Unlock()
-
-	defer func() {
-		r.wg.Done()
-		r.g.bar.Increment()
-	}()
-
-	c, err := reginParseChunck(data)
-	if err != nil {
-		r.g.err <- err
-		return
-	}
-	c.x = x
-	c.z = z
-	c.biome = subImage(r.biome, x, z)
-	c.bloc = subImage(r.bloc, x, z)
-	c.height = subImage(r.height, x, z)
-	c.region = r
-
-	for n := range c.Level.Structures.Starts {
-		r.structs = append(r.structs, structure{
-			X:    x,
-			Z:    z,
-			Name: n,
-		})
-	}
-
-	c.draw()
-}
-
+// Save the list of the structure in JSON.
 func (r *region) saveStructs() {
 	defer r.g.wg.Done()
 	r.g.cpu.Lock()
@@ -120,32 +82,17 @@ func (r *region) saveStructs() {
 	if len(r.structs) == 0 {
 		j = []byte("[]")
 	} else {
-		j, _ = json.Marshal(r.structs)
+		var err error
+		j, err = json.Marshal(r.structs)
+		if err != nil {
+			r.g.err <- fmt.Errorf("Chunck (%d,%d), JSON structures list genration fail: %v", r.X, r.Z, err)
+			return
+		}
 	}
 	r.g.Out.File("structs", fmt.Sprintf("%d.%d.json", r.X, r.Z), j)
 }
 
-// Decompress and parse a chunck
-func reginParseChunck(data []byte) (*chunck, error) {
-	// Decompress data
-	reader, err := zlib.NewReader(bytes.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
-	data, err = ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	// Parse minecraft data
-	c := &chunck{}
-	if err := nbt.Unmarshal(data, c); err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
-// Convert a slice of bytes to int
+// Convert a slice of bytes to int, with bigendian.
 func bytesToInt(tab []byte) (n int) {
 	for _, b := range tab {
 		n = n<<8 + int(b)

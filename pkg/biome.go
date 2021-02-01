@@ -9,10 +9,9 @@ import (
 	"fmt"
 )
 
-// Draw biome from Chunk.Level.Biomes with c.biome closure.
-func (c *chunck) drawBiome() error {
-	biome := c.biome
-	switch b := c.Level.Biomes.(type) {
+// Draw biome from Chunk.Level.Biomes with c.biome image closure.
+func (c *chunck) drawBiome(biome imgSetRGBA, b interface{}) error {
+	switch b := b.(type) {
 	case nil:
 	case []byte:
 		if l := len(b); l == 0 {
