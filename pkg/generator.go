@@ -23,7 +23,6 @@ type generator struct {
 	Option
 	cpu cpumutex.M
 	wg  sync.WaitGroup
-	err chan<- error
 	bar pb.ProgressBar
 	// All the region coords.
 	allRegion []string
@@ -33,20 +32,7 @@ func (option Option) Gen() {
 	if option.Error == nil {
 		option.Error = func(error) {}
 	}
-
-	// REVIEW: Remove g.err chanel
-	ch := make(chan error)
-	go func() {
-		for err := range ch {
-			option.Error(err)
-		}
-	}()
-	defer close(ch)
-
-	g := generator{
-		Option: option,
-		err:    ch,
-	}
+	g := generator{Option: option}
 	g.cpu.Init(option.CPU)
 
 	if err := g.initOutput(); err != nil {
@@ -64,7 +50,7 @@ func (option Option) Gen() {
 
 	// TODO: rework input with fs from go1.16
 	if err := g.In.Open(); err != nil {
-		g.err <- fmt.Errorf("Open() error: %v", err)
+		g.Error(fmt.Errorf("Open() error: %w", err))
 		return
 	}
 	g.cpu.Lock()
@@ -73,13 +59,13 @@ func (option Option) Gen() {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			g.err <- err
+			g.Error(fmt.Errorf("Read next file %q fail %v", n, err))
 			continue
 		}
 
 		x, z := 0, 0
 		if _, err := fmt.Sscanf(n, "r.%d.%d.mca", &x, &z); err != nil {
-			g.err <- fmt.Errorf("Error when read X end Z from file name %q: %v", n, err)
+			g.Error(fmt.Errorf("Error when read X end Z from file name %q: %w", n, err))
 			continue
 		}
 

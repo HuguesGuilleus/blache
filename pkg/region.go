@@ -54,11 +54,11 @@ func parseRegion(g *generator, x, z int, data []byte) {
 			addr := 4096 * bytesToInt(data[offset:offset+3])
 			l := bytesToInt(data[addr : addr+4])
 			if typeOfCompress := data[addr+4]; typeOfCompress != 2 {
-				g.err <- fmt.Errorf("In region (%d,%d), in chunck (%d,%d) Unknown compress, expected 2, found %d", r.X, r.Z, x, z, typeOfCompress)
+				g.Error(fmt.Errorf("In region (%d,%d), in chunck (%d,%d) Unknown compress, expected 2, found %d", r.X, r.Z, x, z, typeOfCompress))
 				continue
 			}
 			if err := r.drawChunck(data[addr+5:addr+4+l], x, z); err != nil {
-				g.err <- fmt.Errorf("In region (%d,%d), in chunck (%d,%d) %w", r.X, r.Z, x, z, err)
+				g.Error(fmt.Errorf("In region (%d,%d), in chunck (%d,%d) %w", r.X, r.Z, x, z, err))
 			}
 		}
 	}
