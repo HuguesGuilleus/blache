@@ -58,10 +58,9 @@ class Viewer {
 			.then(rep => rep.json())
 			.then((rs: string[]) => {
 				for (let c of rs) {
-					const k = c.replace(/^\((.*)\)$/, "$1");
-					this.regions[TileType.bloc].set(k, null);
-					this.regions[TileType.biome].set(k, null);
-					this.regions[TileType.height].set(k, null);
+					this.regions[TileType.bloc].set(c, null);
+					this.regions[TileType.biome].set(c, null);
+					this.regions[TileType.height].set(c, null);
 				}
 				this.drawAll();
 			});

@@ -71,7 +71,7 @@ func (option Option) Gen() {
 
 		g.wg.Add(1)
 		go parseRegion(&g, x, z, data)
-		g.allRegion = append(g.allRegion, fmt.Sprintf("(%d,%d)", x, z))
+		g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
 	}
 	g.cpu.Unlock()
 
