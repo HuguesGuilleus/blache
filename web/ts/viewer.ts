@@ -27,6 +27,7 @@ class Viewer {
 	canvas_ctx: CanvasRenderingContext2D;
 	coordsRegion: HTMLElement;
 	coordsBloc: HTMLElement;
+	coordsStruct: HTMLElement;
 	regions = {
 		[TileType.bloc]: new Map<string, Img | null>(),
 		[TileType.biome]: new Map<string, Img | null>(),
@@ -49,6 +50,7 @@ class Viewer {
 		// Elements
 		this.coordsRegion = $('coordsRegion');
 		this.coordsBloc = $('coordsBloc');
+		this.coordsStruct = $('coordsStruct');
 		this.canvas_el = <HTMLCanvasElement>$('canvas2d');
 		const c = this.canvas_el.getContext('2d');
 		if (!c) throw 'Can not create canvas';
@@ -113,10 +115,23 @@ class Viewer {
 			this.drawAll();
 		});
 		this.canvas_el.addEventListener('mousemove', event => {
-			const x = Math.trunc((this.posX + event.x) * REGION_SIZE / this.size);
-			const z = Math.trunc((this.posZ + event.y) * REGION_SIZE / this.size);
+			const x = Math.trunc((this.posX + event.x) * REGION_SIZE / this.size),
+				z = Math.trunc((this.posZ + event.y) * REGION_SIZE / this.size),
+				rx = Math.floor(x / REGION_SIZE),
+				rz = Math.floor(z / REGION_SIZE),
+				px = x - rx * REGION_SIZE,
+				pz = z - rz * REGION_SIZE;
+
 			this.coordsBloc.innerText = `${x}, ${z}`;
-			this.coordsRegion.innerText = `${Math.floor(x / REGION_SIZE)}, ${Math.floor(z / REGION_SIZE)}`;
+			this.coordsRegion.innerText = `${rx}, ${rz}`;
+			this.coordsStruct.innerText = '';
+			for (let s of (this.struct.get(Coordinate.toString(rx, rz)) ?? [])) {
+				if (Math.abs(px - s.x * 16) < 10 && Math.abs(pz - s.z * 16) < 10) {
+					this.coordsStruct.innerText = s.name;
+					break;
+				}
+			}
+
 			if (!event.buttons) return;
 			this.posX -= event.movementX;
 			this.posZ -= event.movementY;
