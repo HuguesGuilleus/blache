@@ -65,24 +65,16 @@ func (r *region) drawChunck(data []byte, x, z int) error {
 		for z := 0; z < 16; z++ {
 			for _, sec := range c.Level.Sections {
 				size := 64 * len(sec.BlockStates) / 4096
-				mask := uint64((1 << size) - 1)
+				m := uint64((1 << size) - 1)
+				nb := 64 / size
+				colors := palette[sec.Y]
 				for y := 15; -1 < y; y-- {
-
-					// Source: https://wiki.vg/Chunk_Format#Chunk_Section_structure
-					position := (y*16+z)*16 + x
-					start := position * size / 64
-					end := ((position+1)*size - 1) / 64
-					offset := position * size % 64
-					i := uint64(0)
-					if start == end {
-						i = uint64(sec.BlockStates[start]>>offset) & mask
-					} else {
-						i = uint64(sec.BlockStates[start]>>offset|
-							sec.BlockStates[end]<<(64-offset)) & mask
+					p := y*256 + z*16 + x
+					if p/nb >= len(sec.BlockStates) {
+						continue
 					}
-
-					col := palette[sec.Y][i]
-					if col.A == 0xFF {
+					i := uint64(sec.BlockStates[p/nb]>>(p%nb*size)) & m
+					if col := colors[i]; col.A == 0xFF {
 						bloc(x, z, col)
 						h := sec.Y*16 + uint8(y)
 						height(x, z, color.RGBA{h, h, h, 0xFF})
