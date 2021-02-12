@@ -2,7 +2,6 @@ const REGION_SIZE: number = 16 * 32;
 const blackImage = function(): ImageData {
 	const raw = new Uint8ClampedArray(REGION_SIZE * REGION_SIZE * 4);
 	for (let i: number = 0; i < raw.length; i += 4) {
-		raw[i] = raw[i + 0] = raw[i + 1] = raw[i + 2] = 0;
 		raw[i + 3] = 255;
 	}
 	return new ImageData(raw, REGION_SIZE, REGION_SIZE);
@@ -14,6 +13,13 @@ enum TileType {
 	height = 'height',
 }
 
+interface Struct {
+	x: number,
+	z: number,
+	name: string,
+	color: string,
+}
+
 type Img = ImageData | HTMLImageElement;
 
 class Viewer {
@@ -22,10 +28,11 @@ class Viewer {
 	coordsRegion: HTMLElement;
 	coordsBloc: HTMLElement;
 	regions = {
-		[TileType.bloc]: new Map(),
-		[TileType.biome]: new Map(),
-		[TileType.height]: new Map(),
+		[TileType.bloc]: new Map<string, Img | null>(),
+		[TileType.biome]: new Map<string, Img | null>(),
+		[TileType.height]: new Map<string, Img | null>(),
 	};
+	struct = new Map<string, Struct[] | undefined>();
 	type: TileType = TileType.bloc;
 	posX: number = 0;
 	posZ: number = 0;
@@ -166,23 +173,30 @@ class Viewer {
 		const T = this.type;
 
 		// Draw regions
-		for (let cs of this.regions[this.type].keys()) {
-			const [x, z] = Coordinate.parse(cs);
+		for (let k of this.regions[this.type].keys()) {
+			const [x, z] = Coordinate.parse(k);
 			if (
 				(x + 1) * S > X
 				&& x * S < X + W
 				&& (z + 1) * S > Z
 				&& z * S < Z + H
 			) {
-				this.drawImage(x, z, T, this.getOrDownload(x, z, T));
+				this.getTile(k, x, z, T)
 			}
 		}
 	}
 
+	// Get the region tile and the region's structures, then draw all this info.
+	private getTile(k: string, x: number, z: number, t: TileType) {
+		this.drawTile(x, z, t,
+			this.getRegion(k, x, z, t),
+			this.getStructures(k, x, z),
+		)
+	}
+
 	// Return an image for the region. If the region is'nt yet fetch, fetch it
-	// and call View.drawImage in the future.
-	private getOrDownload(x: number, z: number, t: TileType): Img {
-		const k = Coordinate.toString(x, z);
+	// and call View.getTile() when the image is loaded.
+	private getRegion(k: string, x: number, z: number, t: TileType): Img {
 		const img = this.regions[t].get(k);
 		if (img != null) return img;
 
@@ -190,28 +204,62 @@ class Viewer {
 		const i = new Image(REGION_SIZE, REGION_SIZE);
 		i.onload = () => {
 			this.regions[t].set(k, i);
-			this.drawImage(x, z, t, i);
+			this.getTile(k, x, z, t);
 		};
 		i.src = `${t}/${x}.${z}.png`;
 
 		return blackImage;
 	}
 
+	// Return the list of structure, if the list is not yet fetch, fetch it
+	// then call View.getTile().
+	private getStructures(k: string, x: number, z: number): Struct[] {
+		const l = this.struct.get(k);
+		if (Array.isArray(l)) return l;
+
+		this.struct.set(k, []);
+		fetch(`structs/${x}.${z}.json`)
+			.then(rep => rep.json())
+			.then((l: Struct[]) => {
+				this.struct.set(k, l.map(s => {
+					s.color = '#' + s.name.split('')
+						.reduce((s, c) => (s + c.charCodeAt(0)) % 256, 0)
+						.toString(16)
+						.repeat(3);
+					s.color = 'violet';
+					return s;
+				}));
+				this.getTile(k, x, z, this.type);
+			});
+
+		return [];
+	}
+
 	// Draw the region image into the screen.
-	private drawImage(xa: number, za: number, t: TileType, img: Img) {
+	private drawTile(xa: number, za: number, t: TileType, surface: Img, struct: Struct[]) {
 		if (t != this.type) return;
-		const S = this.size;
-		const xr = xa * S - this.posX;
-		const zr = za * S - this.posZ;
-		if (img instanceof HTMLImageElement) {
+		const S = this.size,
+			xr = xa * S - this.posX,
+			zr = za * S - this.posZ;
+
+		if (surface instanceof HTMLImageElement) {
 			this.canvas_ctx.imageSmoothingEnabled = false;
-			this.canvas_ctx.drawImage(img, xr, zr, S, S);
+			this.canvas_ctx.drawImage(surface, xr, zr, S, S);
 		} else {
-			this.canvas_ctx.putImageData(img, xr, zr, 0, 0, S, S);
+			this.canvas_ctx.putImageData(surface, xr, zr, 0, 0, S, S);
 		}
+
 		this.canvas_ctx.strokeStyle = 'orange';
 		this.canvas_ctx.lineWidth = 2.5;
 		this.canvas_ctx.stroke(new Path2D(`M${xr} ${zr} v${S} h${S} v${-S} z`));
+
+		for (let s of struct) {
+			this.canvas_ctx.fillStyle = s.color;
+			this.canvas_ctx.fillRect(
+				xr + s.x * 16 * S / REGION_SIZE,
+				zr + s.z * 16 * S / REGION_SIZE,
+				5, 5);
+		}
 	}
 }
 
