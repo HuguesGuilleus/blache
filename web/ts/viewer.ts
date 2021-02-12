@@ -71,10 +71,10 @@ class Viewer {
 			switch (e.key) {
 				case '-':
 					this.zoomOut(this.canvas_el.width / 2, this.canvas_el.height / 2);
-					return;
+					break;
 				case '+':
 					this.zoomIn(this.canvas_el.width / 2, this.canvas_el.height / 2);
-					return;
+					break;
 				case 'ArrowLeft':
 					this.posX -= this.size / 4;
 					break;
@@ -101,6 +101,8 @@ class Viewer {
 				default:
 					return;
 			}
+			this.coordsBloc.innerText = '?';
+			this.coordsRegion.innerText = '?';
 			this.drawAll();
 		});
 		this.canvas_el.addEventListener('mousemove', event => {
@@ -120,6 +122,7 @@ class Viewer {
 			} else if (d < 0) {
 				this.zoomIn(event.x, event.y);
 			}
+			this.drawAll();
 		});
 	}
 
@@ -135,14 +138,12 @@ class Viewer {
 		this.posX = this.posX * 2 + w;
 		this.posZ = this.posZ * 2 + h;
 		this.size *= 2;
-		this.drawAll();
 	}
 	private zoomOut(w: number, h: number) {
 		if (this.size < REGION_SIZE / 16) return;
 		this.posX = this.posX / 2 - w / 2;
 		this.posZ = this.posZ / 2 - h / 2;
 		this.size /= 2;
-		this.drawAll();
 	}
 
 	// Change the size of the canvas.
