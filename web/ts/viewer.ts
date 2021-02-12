@@ -237,11 +237,9 @@ class Viewer {
 			.then(rep => rep.json())
 			.then((l: Struct[]) => {
 				this.struct.set(k, l.map(s => {
-					s.color = '#' + s.name.split('')
-						.reduce((s, c) => (s + c.charCodeAt(0)) % 256, 0)
-						.toString(16)
-						.repeat(3);
-					s.color = 'violet';
+					s.color = `hsl(
+						${s.name.split('').reduce((s, c) => (s + c.charCodeAt(0)) % 256, 0)
+						}, 100%, 50%)`;
 					return s;
 				}));
 				this.getTile(k, x, z, this.type);
@@ -273,7 +271,7 @@ class Viewer {
 			this.canvas_ctx.fillRect(
 				xr + s.x * 16 * S / REGION_SIZE,
 				zr + s.z * 16 * S / REGION_SIZE,
-				5, 5);
+				8, 8);
 		}
 	}
 }
