@@ -70,10 +70,10 @@ class Viewer {
 		window.addEventListener('keydown', e => {
 			switch (e.key) {
 				case '-':
-					this.zoomOut();
+					this.zoomOut(this.canvas_el.width / 2, this.canvas_el.height / 2);
 					return;
 				case '+':
-					this.zoomIn();
+					this.zoomIn(this.canvas_el.width / 2, this.canvas_el.height / 2);
 					return;
 				case 'ArrowLeft':
 					this.posX -= this.size / 4;
@@ -116,9 +116,9 @@ class Viewer {
 		this.canvas_el.addEventListener('wheel', event => {
 			const d = event.deltaY;
 			if (d > 0) {
-				this.zoomOut();
+				this.zoomOut(event.x, event.y);
 			} else if (d < 0) {
-				this.zoomIn();
+				this.zoomIn(event.x, event.y);
 			}
 		});
 	}
@@ -130,17 +130,19 @@ class Viewer {
 			this.drawAll();
 		}
 	}
-	private zoomIn() {
-		if (this.size <= REGION_SIZE * 16) {
-			this.size *= 2;
-			this.drawAll();
-		}
+	private zoomIn(w: number, h: number) {
+		if (this.size > REGION_SIZE * 16) return;
+		this.posX = this.posX * 2 + w;
+		this.posZ = this.posZ * 2 + h;
+		this.size *= 2;
+		this.drawAll();
 	}
-	private zoomOut() {
-		if (this.size >= REGION_SIZE / 16) {
-			this.size /= 2;
-			this.drawAll();
-		}
+	private zoomOut(w: number, h: number) {
+		if (this.size < REGION_SIZE / 16) return;
+		this.posX = this.posX / 2 - w / 2;
+		this.posZ = this.posZ / 2 - h / 2;
+		this.size /= 2;
+		this.drawAll();
 	}
 
 	// Change the size of the canvas.
