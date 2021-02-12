@@ -38,6 +38,8 @@ class Viewer {
 	posX: number = 0;
 	posZ: number = 0;
 	size: number = REGION_SIZE;
+	enableStruct: boolean;
+	enableFrontier: boolean;
 
 	constructor() {
 		// Use to get some element into the dom.
@@ -61,6 +63,19 @@ class Viewer {
 			.addEventListener('click', () => this.typeChange(TileType.biome));
 		$('tileTypeHeight')
 			.addEventListener('click', () => this.typeChange(TileType.height));
+
+		const frontier = <HTMLInputElement>$('enableFrontier');
+		this.enableFrontier = frontier.checked;
+		frontier.addEventListener('change', () => {
+			this.enableFrontier = frontier.checked;
+			this.drawAll();
+		});
+		const structs = <HTMLInputElement>$('enableStruct');
+		this.enableStruct = structs.checked;
+		structs.addEventListener('change', () => {
+			this.enableStruct = structs.checked;
+			this.drawAll();
+		});
 
 		// Download regions list
 		fetch('regions.json')
@@ -262,16 +277,20 @@ class Viewer {
 			this.canvas_ctx.putImageData(surface, xr, zr, 0, 0, S, S);
 		}
 
-		this.canvas_ctx.strokeStyle = 'orange';
-		this.canvas_ctx.lineWidth = 2.5;
-		this.canvas_ctx.stroke(new Path2D(`M${xr} ${zr} v${S} h${S} v${-S} z`));
+		if (this.enableFrontier) {
+			this.canvas_ctx.strokeStyle = 'orange';
+			this.canvas_ctx.lineWidth = 2.5;
+			this.canvas_ctx.stroke(new Path2D(`M${xr} ${zr} v${S} h${S} v${-S} z`));
+		}
 
-		for (let s of struct) {
-			this.canvas_ctx.fillStyle = s.color;
-			this.canvas_ctx.fillRect(
-				xr + s.x * 16 * S / REGION_SIZE,
-				zr + s.z * 16 * S / REGION_SIZE,
-				8, 8);
+		if (this.enableStruct) {
+			for (let s of struct) {
+				this.canvas_ctx.fillStyle = s.color;
+				this.canvas_ctx.fillRect(
+					xr + s.x * 16 * S / REGION_SIZE,
+					zr + s.z * 16 * S / REGION_SIZE,
+					8, 8);
+			}
 		}
 	}
 }
