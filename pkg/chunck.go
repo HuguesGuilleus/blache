@@ -5,9 +5,9 @@
 package blache
 
 import (
-	"./minecraftColor"
 	"bytes"
 	"compress/zlib"
+	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
 	"github.com/Tnze/go-mc/nbt"
 	"image/color"
 	"sort"

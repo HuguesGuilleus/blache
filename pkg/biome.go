@@ -5,8 +5,8 @@
 package blache
 
 import (
-	"./minecraftColor"
 	"fmt"
+	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
 )
 
 // Draw biome from Chunk.Level.Biomes with c.biome image closure.

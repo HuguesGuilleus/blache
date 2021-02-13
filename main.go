@@ -5,10 +5,10 @@
 package main
 
 import (
-	"./meta"
-	"./pkg"
 	"flag"
 	"fmt"
+	"github.com/HuguesGuilleus/blache/meta"
+	"github.com/HuguesGuilleus/blache/pkg"
 	"os"
 	"time"
 )

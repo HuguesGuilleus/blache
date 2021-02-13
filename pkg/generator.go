@@ -5,12 +5,12 @@
 package blache
 
 import (
-	"../web/webData"
-	"./cpumutex"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/cheggaaa/pb.v3"
+	"github.com/HuguesGuilleus/blache/pkg/cpumutex"
+	"github.com/HuguesGuilleus/blache/web/webData"
+	"github.com/cheggaaa/pb"
 	"image"
 	"image/png"
 	"io"
