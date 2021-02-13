@@ -22,16 +22,22 @@ func main() {
 		},
 	}
 
-	flag.Var(&out, "out", "The output Directory")
+	flag.BoolVar(&opt.NoBar, "bar", false, "Disable progress bar")
 	flag.IntVar(&opt.CPU, "cpu", 0, "The number of core used, zero is for all core.")
+	flag.Var(&out, "out", "The output Directory")
 	version := flag.Bool("version", false, "Print the version and exit")
 	flag.Parse()
-
-	opt.In = blache.NewReaderFile(flag.Arg(0))
 
 	if *version {
 		printVersion()
 		return
+	}
+
+	if a := flag.Arg(0); a == "" {
+		flag.Usage()
+		return
+	} else {
+		opt.In = blache.NewReaderFile(a)
 	}
 
 	defer func(before time.Time) {
@@ -45,6 +51,8 @@ func init() {
 		fmt.Println("Usage: $ blache [OPTION ...] input")
 		fmt.Println()
 		fmt.Println("  input is a directory that contain minecraft regions (*.mca)")
+		fmt.Println()
+		fmt.Println("Option:")
 		flag.PrintDefaults()
 	}
 }
