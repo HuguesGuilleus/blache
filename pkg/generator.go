@@ -77,8 +77,8 @@ func (option Option) Gen() {
 		}
 
 		x, z := 0, 0
-		if _, err := fmt.Sscanf(n, "r.%d.%d.mca", &x, &z); err != nil {
-			g.Error(fmt.Errorf("Error when read X end Z from file name %q: %w", n, err))
+		if _, err := fmt.Sscanf(f.Name(), "r.%d.%d.mca", &x, &z); err != nil {
+			g.Error(fmt.Errorf("Error when read X end Z from file name %q: %w", f.Name(), err))
 			continue
 		}
 

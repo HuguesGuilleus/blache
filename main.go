@@ -5,11 +5,13 @@
 package main
 
 import (
+	"archive/zip"
 	"flag"
 	"fmt"
 	"github.com/HuguesGuilleus/blache/meta"
 	"github.com/HuguesGuilleus/blache/pkg"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -36,6 +38,13 @@ func main() {
 	if a := flag.Arg(0); a == "" {
 		flag.Usage()
 		return
+	} else if strings.HasSuffix(a, ".zip") {
+		r, err := zip.OpenReader(a)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "\033[1G\033[KFail to open zip file: %q: %v\n", a, err)
+			os.Exit(1)
+		}
+		opt.In = r
 	} else {
 		opt.In = os.DirFS(a)
 	}
@@ -50,10 +59,21 @@ func init() {
 	flag.Usage = func() {
 		fmt.Println("Usage: $ blache [OPTION ...] input")
 		fmt.Println()
-		fmt.Println("  input is a directory that contain minecraft regions (*.mca)")
+		fmt.Println("Input:")
+		fmt.Println("  - a directory")
+		fmt.Println("  - a zip file")
+		fmt.Println("  Inside all minecraft regions *.mca must in one of this repository:")
+		fmt.Println("  - world/region")
+		fmt.Println("  - region")
+		fmt.Println("  - direcly in the repository")
 		fmt.Println()
 		fmt.Println("Option:")
 		flag.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Example:")
+		fmt.Println("  $ blache -out=www my_world.zip")
+		fmt.Println("  $ blache -out=www ~/.minecraft/saves/new_world/")
+		fmt.Println()
 	}
 }
 
