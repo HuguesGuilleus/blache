@@ -10,21 +10,19 @@ import (
 	"fmt"
 	"github.com/HuguesGuilleus/blache/pkg/cpumutex"
 	"github.com/HuguesGuilleus/blache/web"
-	"github.com/cheggaaa/pb"
 	"image"
 	"image/png"
 	"io/fs"
 	"path"
 	"sort"
 	"sync"
-	"time"
 )
 
 type generator struct {
 	Option
 	cpu cpumutex.M
 	wg  sync.WaitGroup
-	bar pb.ProgressBar
+	bar bar
 	// All the region coords.
 	allRegion []string
 }
@@ -42,10 +40,7 @@ func (option Option) Gen() {
 	}
 
 	if !option.NoBar {
-		g.bar = *pb.New(0)
-		g.bar.Format("[=> ]")
-		g.bar.SetRefreshRate(time.Millisecond * 100)
-		g.bar.Start()
+		go g.bar.Start()
 		defer g.bar.Finish()
 	}
 
