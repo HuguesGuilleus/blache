@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/HuguesGuilleus/blache/pkg/cpumutex"
-	"github.com/HuguesGuilleus/blache/web/webData"
+	"github.com/HuguesGuilleus/blache/web"
 	"github.com/cheggaaa/pb"
 	"image"
 	"image/png"
@@ -100,10 +100,9 @@ func (g *generator) initOutput() error {
 		}
 	}
 
-	a, _ := webData.AssetDir("web")
-	for _, n := range a {
-		if err := g.Out.Create("", n, webData.MustAsset("web/"+n)); err != nil {
-			return fmt.Errorf("Write assets %q fail: %w", n, err)
+	for _, f := range web.List {
+		if err := g.Out.Create("", f.Name, f.Data); err != nil {
+			return fmt.Errorf("Fail to write web file %q: %v", f.Name, err)
 		}
 	}
 
