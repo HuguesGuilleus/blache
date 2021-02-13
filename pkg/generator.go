@@ -13,7 +13,8 @@ import (
 	"github.com/cheggaaa/pb"
 	"image"
 	"image/png"
-	"io"
+	"io/fs"
+	"path"
 	"sort"
 	"sync"
 	"time"
@@ -48,19 +49,31 @@ func (option Option) Gen() {
 		defer g.bar.Finish()
 	}
 
-	// TODO: rework input with fs from go1.16
-	if err := g.In.Open(); err != nil {
-		g.Error(fmt.Errorf("Open() error: %w", err))
+	var (
+		root  string
+		files []fs.DirEntry
+		err   error
+	)
+	for _, p := range []string{"world/region", "region", "."} {
+		files, err = fs.ReadDir(option.In, p)
+		if err == nil {
+			root = p
+			break
+		}
+	}
+	if err != nil {
+		option.Error(fmt.Errorf("Read directory fail: %w", err))
 		return
 	}
+
+	g.bar.Total += (32*32 + 1) * int64(len(files))
 	g.cpu.Lock()
-	for {
-		n, data, err := g.In.Read()
-		if err == io.EOF {
+	for _, f := range files {
+		n := path.Join(root, f.Name())
+		data, err := fs.ReadFile(option.In, n)
+		if err != nil {
+			option.Error(fmt.Errorf("Fail to read %q: %w", n, err))
 			break
-		} else if err != nil {
-			g.Error(fmt.Errorf("Read next file %q fail %v", n, err))
-			continue
 		}
 
 		x, z := 0, 0

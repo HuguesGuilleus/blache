@@ -29,7 +29,6 @@ type structure struct {
 /* PARSING */
 
 func parseRegion(g *generator, x, z int, data []byte) {
-	g.bar.Total += 32*32 + 1
 	g.cpu.Lock()
 	defer g.cpu.Unlock()
 	defer g.wg.Done()

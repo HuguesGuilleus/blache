@@ -37,7 +37,7 @@ func main() {
 		flag.Usage()
 		return
 	} else {
-		opt.In = blache.NewReaderFile(a)
+		opt.In = os.DirFS(a)
 	}
 
 	defer func(before time.Time) {
