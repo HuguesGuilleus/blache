@@ -9,27 +9,22 @@
 </head>
 
 <body>
-	<ul id=tileTypeGroup>
+	<ul id=aside>
 		<li class="tileType" id=tileTypeBloc>
-			<img src="bloc/0.0.png" alt="">
-			<p>Bloc</p>
+			<img class="tileTypeImg" src="bloc/0.0.png" title="Bloc">
 		<li class="tileType" id=tileTypeBiome>
-			<img src="biome/0.0.png" alt="">
-			<p>Biome</p>
+			<img class="tileTypeImg" src="biome/0.0.png" title="Biome">
 		<li class="tileType" id=tileTypeHeight>
-			<img src="height/0.0.png" alt="">
-			<p>Height</p>
+			<img class="tileTypeImg" src="height/0.0.png" title="Height">
 		<li>
-			<label for=enableStruct>Print structures</label>
 			<input type="checkbox" id=enableStruct checked>
+			<label for=enableStruct>Print structures</label>
 		<li>
-			<label for=enableFrontier>Print region frontier</label>
 			<input type="checkbox" id=enableFrontier checked>
-	</ul>
-	<ul id=coords>
-		<li>Region: <span id=coordsRegion></span></li>
-		<li>Bloc: <span id=coordsBloc></span></li>
-		<li>Structure: <span id=coordsStruct></span></li>
+			<label for=enableFrontier>Print region frontier</label>
+		<li class="coord">Region: <span class="coordValue" id=coordsRegion></span></li>
+		<li class="coord">Bloc: <span class="coordValue" id=coordsBloc></span></li>
+		<li class="coord">Structure: <span class="coordValue" id=coordsStruct></span></li>
 	</ul>
 	<canvas id="canvas2d" width="300" height="300"></canvas>
 </body>

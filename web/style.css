@@ -1,26 +1,34 @@
 body {
-	margin: 0px;
-	padding: 0px;
+	margin: 0;
+	padding: 0;
 	overflow: hidden;
 	font-family: sans-serif;
 	color: black;
 }
 
-/* COORDS */
-
-#coords {
+#aside {
 	position: fixed;
-	left: 0;
+	left: 1ex;
 	top: 2ex;
-	border-right: solid 0.3ex darkgrey;
-	padding: 1ex;
-	font-size: large;
+	border-radius: 0.7ex;
+	padding: 0.7ex;
+	font-size: normal;
 	list-style: none;
-	text-align: right;
-	background: dimgrey;
+	background: gainsboro;
 }
 
-#coords li>span {
+hr {
+	border: solid 0.1ex darkgrey;
+	width: 100%;
+}
+
+/* Coord */
+
+.coord {
+	text-align: rights;
+}
+
+.coordValue {
 	display: inline-block;
 	min-width: 12ex;
 	text-align: left;
@@ -28,40 +36,20 @@ body {
 
 /* TILE TYPE */
 
-#tileTypeGroup {
-	position: fixed;
-	left: 2ex;
-	bottom: 0;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
 .tileType {
 	display: inline-block;
-	margin: 0;
-	border-top: solid 0.3ex darkgrey;
-	vertical-align: bottom;
-	padding: 0.4ex;
-	background: dimgrey;
-	font-size: large;
+	margin: 0 1ex;
+	width: 6ex;
 }
-.tileType:hover {
-	background: grey;
+#tileTypeBloc {
+	margin-left: 0;
 }
 
-.tileType img {
-	display: block;
-	width: 8ex;
+.tileTypeImg {
+	width: 100%;
+	box-sizing: border-box;
+	border-radius: 0.5ex;
 }
-
-.tileType p {
-	display: none;
-	margin: 0;
-	padding: 0.3ex 0;
-	text-align: center;
-}
-
-.tileType:hover p {
-	display: block;
+.tileTypeImg:hover {
+	border: dodgerblue 0.5ex solid;
 }
