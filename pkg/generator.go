@@ -77,6 +77,11 @@ func (option Option) Gen() {
 			continue
 		}
 
+		if len(data) < 32*32*4 {
+			g.bar.Add(32*32 + 1)
+			continue
+		}
+
 		g.wg.Add(1)
 		go parseRegion(&g, x, z, data)
 		g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
