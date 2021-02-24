@@ -29,6 +29,16 @@ type structure struct {
 /* PARSING */
 
 func parseRegion(g *generator, x, z int, data []byte) {
+	defer func() {
+		switch err := recover(); err.(type) {
+		case nil:
+		case error:
+			g.Error(fmt.Errorf("Panic error (region: %d,%d): %w", x, z, err))
+		default:
+			g.Error(fmt.Errorf("Panic error (region: %d,%d): %v", x, z, err))
+		}
+	}()
+
 	g.cpu.Lock()
 	defer g.cpu.Unlock()
 	defer g.wg.Done()
