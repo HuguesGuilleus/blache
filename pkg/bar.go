@@ -22,10 +22,17 @@ type bar struct {
 	closer    chan<- struct{}
 }
 
+// Incrment of one finisehd task
 func (b *bar) Increment() {
 	atomic.AddInt64(&b.Nb, 1)
 }
 
+// Increment of nb finisehd tasks.
+func (b *bar) Add(n int64) {
+	atomic.AddInt64(&b.Nb, n)
+}
+
+// Start the progress bar. (must called in a new goroutime)
 func (b *bar) Start() {
 	if b.Total == 0 {
 		b.Total = 1
@@ -60,6 +67,7 @@ func (b *bar) Start() {
 	}
 }
 
+// Remove the progress bar.
 func (b *bar) Finish() {
 	b.closer <- struct{}{}
 	os.Stdout.WriteString("\033[1G\033[K")
