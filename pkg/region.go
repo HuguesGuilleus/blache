@@ -16,7 +16,7 @@ import (
 type region struct {
 	X, Z    int
 	g       *generator
-	biome   *image.RGBA
+	biome   biomeImage
 	bloc    *image.RGBA
 	height  *image.RGBA
 	structs []structure
@@ -50,7 +50,7 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		g:      g,
 		X:      x,
 		Z:      z,
-		biome:  image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
+		biome:  newBiomeImage(),
 		bloc:   image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
 		height: image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
 	}
@@ -78,7 +78,7 @@ func parseRegion(g *generator, x, z int, data []byte) {
 	r.g.bar.Increment()
 
 	name := fmt.Sprintf("%d.%d.png", r.X, r.Z)
-	r.saveImage("biome", name, r.biome)
+	r.saveImageBiome(name)
 	r.saveImage("bloc", name, r.bloc)
 	r.saveImage("height", name, r.height)
 	r.saveStructs()
@@ -104,12 +104,20 @@ func (r *region) saveStructs() {
 }
 
 // Save an image of one region.
-// func (r *region) saveImage(dir, f string, img *image.RGBA) {
-func (r *region) saveImage(dir, name string, img *image.RGBA) {
+func (r *region) saveImage(dir, name string, img image.Image) {
 	buff := bytes.Buffer{}
 	png.Encode(&buff, img)
 
 	if err := r.g.Out.Create(dir, name, buff.Bytes()); err != nil {
+		r.g.Error(fmt.Errorf("Fail to save image: %v", err))
+	}
+}
+
+func (r *region) saveImageBiome(name string) {
+	buff := bytes.Buffer{}
+	png.Encode(&buff, &r.biome)
+
+	if err := r.g.Out.Create("biome", name, buff.Bytes()); err != nil {
 		r.g.Error(fmt.Errorf("Fail to save image: %v", err))
 	}
 }

@@ -19,7 +19,23 @@ func toRGBA(i int) color.RGBA {
 }
 
 var (
-	BlackRGBA     = toRGBA(0)
+	BiomePalette color.Palette = func() (palette color.Palette) {
+		palette = make(color.Palette, len(Biome))
+		for i, c := range Biome {
+			palette[i] = color.Color(c)
+		}
+		return
+	}()
+	// The index in Biome or BiomePalette of the first black color.
+	BiomeBlackIndex = func() uint8 {
+		for i, c := range Biome {
+			if color.Color(c) == BlackRGBA {
+				return uint8(i)
+			}
+		}
+		panic("Need a black color")
+	}()
+	BlackRGBA = toRGBA(0)
 	// https://minecraft-el.gamepedia.com/Biome/ID
 	Biome = [256]color.RGBA{
 		toRGBA(0x000070), // Ocean

@@ -52,7 +52,7 @@ func (r *region) drawChunck(data []byte, x, z int) error {
 	}
 
 	// Draw biome tile.
-	if err := c.drawBiome(subImage(r.biome, x, z), c.Level.Biomes); err != nil {
+	if err := r.biome.draw(x, z, c.Level.Biomes); err != nil {
 		return err
 	}
 
