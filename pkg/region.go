@@ -50,7 +50,6 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		g:      g,
 		X:      x,
 		Z:      z,
-		biome:  newBiomeImage(),
 		bloc:   image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
 		height: image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
 	}

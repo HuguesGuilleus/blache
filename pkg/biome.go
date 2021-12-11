@@ -16,15 +16,6 @@ type biomeImage struct {
 	palette      color.Palette
 }
 
-func newBiomeImage() (img biomeImage) {
-	for i := range img.paletteIndex {
-		for j := range img.paletteIndex[i] {
-			img.paletteIndex[i][j] = minecraftColor.BiomeBlackIndex
-		}
-	}
-	return
-}
-
 // The boud of the image: always 32*16 square
 func (_ *biomeImage) Bounds() image.Rectangle {
 	return image.Rect(0, 0, 32*16, 32*16)
@@ -56,12 +47,15 @@ func (img *biomeImage) draw(chunckX, chunckZ int, biome interface{}) error {
 	chunck := img.paletteIndex[chunckZ*32+chunckX][:]
 	switch biome := biome.(type) {
 	case nil:
+		fillBiomChunck(chunck)
 	case []byte:
 		switch l := len(biome); l {
 		case 256:
 			copy(chunck, biome)
 		case 0:
+			fillBiomChunck(chunck)
 		default:
+			fillBiomChunck(chunck)
 			return fmt.Errorf("Biome is bytes array with %d length (expected 256)", l)
 		}
 	case []int32:
@@ -84,13 +78,22 @@ func (img *biomeImage) draw(chunckX, chunckZ int, biome interface{}) error {
 				}
 			}
 		case 0:
+			fillBiomChunck(chunck)
 		default:
+			fillBiomChunck(chunck)
 			return fmt.Errorf("[]int32 length is not 2565 or 1024, it't: %d", len(biome))
 		}
 	default:
+		fillBiomChunck(chunck)
 		return fmt.Errorf("The biome is %T (expected byte or int32 array, or nothing)", biome)
 	}
 	return nil
+}
+
+func fillBiomChunck(chunck []uint8) {
+	for i := range chunck {
+		chunck[i] = minecraftColor.BiomeBlackIndex
+	}
 }
 
 // After draw on all chunck, select only used color. Do not used draw after.
