@@ -5,13 +5,10 @@
 package blache
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/HuguesGuilleus/blache/pkg/cpumutex"
 	"github.com/HuguesGuilleus/blache/web"
-	"image"
-	"image/png"
 	"io/fs"
 	"path"
 	"sort"
@@ -27,7 +24,7 @@ type generator struct {
 	allRegion []string
 }
 
-func (option Option) Gen() {
+func Generate(option Option) {
 	if option.Error == nil {
 		option.Error = func(error) {}
 	}
@@ -44,51 +41,39 @@ func (option Option) Gen() {
 		defer g.bar.Finish()
 	}
 
-	var (
-		root  string
-		files []fs.DirEntry
-		err   error
-	)
-	for _, p := range []string{"world/region", "region", "."} {
-		files, err = fs.ReadDir(option.In, p)
-		if err == nil {
-			root = p
-			break
-		}
-	}
+	root, files, err := g.getFiles()
 	if err != nil {
 		option.Error(fmt.Errorf("Read directory fail: %w", err))
 		return
 	}
 
 	g.bar.Total += (32*32 + 1) * int64(len(files))
+	g.wg.Add(len(files))
+	defer g.wg.Wait()
+
 	g.cpu.Lock()
+	defer g.cpu.Unlock()
+
 	for _, f := range files {
+		x, z := 0, 0
+		if _, err := fmt.Sscanf(f.Name(), "r.%d.%d.mca", &x, &z); err != nil {
+			g.fileFail("Error when read X end Z from file name %q: %w", f.Name(), err)
+			continue
+		}
+
 		n := path.Join(root, f.Name())
 		data, err := fs.ReadFile(option.In, n)
 		if err != nil {
-			option.Error(fmt.Errorf("Fail to read %q: %w", n, err))
-			break
-		}
-
-		x, z := 0, 0
-		if _, err := fmt.Sscanf(f.Name(), "r.%d.%d.mca", &x, &z); err != nil {
-			g.Error(fmt.Errorf("Error when read X end Z from file name %q: %w", f.Name(), err))
+			g.fileFail("Fail to read %q: %w", n, err)
+			continue
+		} else if len(data) < 32*32*4 {
+			g.fileFail("")
 			continue
 		}
 
-		if len(data) < 32*32*4 {
-			g.bar.Add(32*32 + 1)
-			continue
-		}
-
-		g.wg.Add(1)
-		go parseRegion(&g, x, z, data)
 		g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
+		go parseRegion(&g, x, z, data)
 	}
-	g.cpu.Unlock()
-
-	g.wg.Wait()
 	g.saveRegionsList()
 }
 
@@ -109,6 +94,17 @@ func (g *generator) initOutput() error {
 	return nil
 }
 
+// When fail to read a file, Send an error to g.Error wiith format and ars if
+// format is not empty.
+func (g *generator) fileFail(format string, args ...interface{}) {
+	g.bar.Add(32*32 + 1)
+	g.wg.Done()
+
+	if format != "" {
+		g.Error(fmt.Errorf(format, args))
+	}
+}
+
 // Save all the processed region coordonates into regions.json
 func (g *generator) saveRegionsList() {
 	sort.Strings(g.allRegion)
@@ -119,19 +115,5 @@ func (g *generator) saveRegionsList() {
 	}
 	if err := g.Out.Create("", "regions.json", data); err != nil {
 		g.Error(fmt.Errorf("Write regions.json fail: %w", err))
-	}
-}
-
-// Save an image of one region.
-func (g *generator) saveImage(dir, f string, img *image.RGBA) {
-	g.cpu.Lock()
-	defer g.cpu.Unlock()
-	defer g.wg.Done()
-
-	buff := bytes.Buffer{}
-	png.Encode(&buff, img)
-
-	if err := g.Out.Create(dir, f, buff.Bytes()); err != nil {
-		g.Error(fmt.Errorf("save image error: %v", err))
 	}
 }

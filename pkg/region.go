@@ -5,10 +5,12 @@
 package blache
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
 )
 
 type region struct {
@@ -39,9 +41,10 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		}
 	}()
 
+	defer g.wg.Done()
+
 	g.cpu.Lock()
 	defer g.cpu.Unlock()
-	defer g.wg.Done()
 
 	r := region{
 		g:      g,
@@ -71,22 +74,18 @@ func parseRegion(g *generator, x, z int, data []byte) {
 			}
 		}
 	}
+
 	r.g.bar.Increment()
 
-	r.g.wg.Add(4)
-	n := fmt.Sprintf("%d.%d.png", r.X, r.Z)
-	go r.g.saveImage("biome", n, r.biome)
-	go r.g.saveImage("bloc", n, r.bloc)
-	go r.g.saveImage("height", n, r.height)
-	go r.saveStructs()
+	name := fmt.Sprintf("%d.%d.png", r.X, r.Z)
+	r.saveImage("biome", name, r.biome)
+	r.saveImage("bloc", name, r.bloc)
+	r.saveImage("height", name, r.height)
+	r.saveStructs()
 }
 
 // Save the list of the structure in JSON.
 func (r *region) saveStructs() {
-	defer r.g.wg.Done()
-	r.g.cpu.Lock()
-	defer r.g.cpu.Unlock()
-
 	var j []byte
 	if len(r.structs) == 0 {
 		j = []byte("[]")
@@ -101,6 +100,17 @@ func (r *region) saveStructs() {
 	n := fmt.Sprintf("%d.%d.json", r.X, r.Z)
 	if err := r.g.Out.Create("structs", n, j); err != nil {
 		r.g.Error(fmt.Errorf("Write list of structure file %q fail: %w", n, err))
+	}
+}
+
+// Save an image of one region.
+// func (r *region) saveImage(dir, f string, img *image.RGBA) {
+func (r *region) saveImage(dir, name string, img *image.RGBA) {
+	buff := bytes.Buffer{}
+	png.Encode(&buff, img)
+
+	if err := r.g.Out.Create(dir, name, buff.Bytes()); err != nil {
+		r.g.Error(fmt.Errorf("Fail to save image: %v", err))
 	}
 }
 

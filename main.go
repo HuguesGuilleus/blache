@@ -53,7 +53,7 @@ func main() {
 	defer func(before time.Time) {
 		fmt.Println("[DURATION]", time.Since(before).Round(time.Millisecond*10))
 	}(time.Now())
-	opt.Gen()
+	blache.Generate(opt)
 }
 
 func init() {

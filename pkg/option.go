@@ -5,12 +5,14 @@
 package blache
 
 import (
+	"errors"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 )
+
+var NotMapFiles = errors.New("Not found the map files")
 
 // All the options for one generation
 type Option struct {
@@ -25,6 +27,17 @@ type Option struct {
 	CPU int
 	// Log the error. Is not set, never output.
 	Error func(error)
+}
+
+func (option *Option) getFiles() (root string, files []fs.DirEntry, err error) {
+	for _, root = range [...]string{"world/region", "region", "."} {
+		files, err = fs.ReadDir(option.In, root)
+		if err == nil {
+			return
+		}
+	}
+
+	return "", nil, NotMapFiles
 }
 
 // Used to write asset web file and generated file.
@@ -56,8 +69,8 @@ func (c *OsCreator) MkdirAll(dir string) error {
 func (c *OsCreator) Create(dir, name string, data []byte) error {
 	c.Lock()
 	defer c.Unlock()
-	// TODO: use os #go1.16
-	return ioutil.WriteFile(filepath.Join(c.Root, dir, name), data, 0664)
+
+	return os.WriteFile(filepath.Join(c.Root, dir, name), data, 0664)
 }
 
 // Set Root. Used for the package package.
