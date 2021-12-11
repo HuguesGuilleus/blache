@@ -114,6 +114,8 @@ func (r *region) saveImage(dir, name string, img image.Image) {
 }
 
 func (r *region) saveImageBiome(name string) {
+	r.biome.processPalette()
+
 	buff := bytes.Buffer{}
 	png.Encode(&buff, &r.biome)
 

@@ -11,12 +11,15 @@ import (
 	"image/color"
 )
 
-type biomeImage [32 * 32][16 * 16]uint8
+type biomeImage struct {
+	paletteIndex [32 * 32][16 * 16]uint8
+	palette      color.Palette
+}
 
 func newBiomeImage() (img biomeImage) {
-	for i := range img {
-		for j := range img[i] {
-			img[i][j] = minecraftColor.BiomeBlackIndex
+	for i := range img.paletteIndex {
+		for j := range img.paletteIndex[i] {
+			img.paletteIndex[i][j] = minecraftColor.BiomeBlackIndex
 		}
 	}
 	return
@@ -27,32 +30,30 @@ func (_ *biomeImage) Bounds() image.Rectangle {
 	return image.Rect(0, 0, 32*16, 32*16)
 }
 
-// The biomeImage palette: always minecraftColor.BiomePalette.
-func (_ *biomeImage) ColorModel() color.Model {
+// Return his own palette or minecraftColor.BiomePalette if not set.
+func (img *biomeImage) ColorModel() color.Model {
+	if img.palette != nil {
+		return img.palette
+	}
 	return minecraftColor.BiomePalette
 }
 
 // At returns the color of the pixel at (x, y).
 func (img *biomeImage) At(x, z int) color.Color {
+	if img.palette != nil {
+		return img.palette[img.ColorIndexAt(x, z)]
+	}
 	return minecraftColor.BiomePalette[img.ColorIndexAt(x, z)]
 }
 
 // ColorIndexAt returns the palette index of the pixel at (x, y = z).
 func (img *biomeImage) ColorIndexAt(x, z int) uint8 {
-	defer func() {
-		err := recover()
-		if err != nil {
-			fmt.Println(x, z, err)
-			panic(err)
-		}
-	}()
-	chunck := img[z/16*32+x/16]
-	return chunck[(z%16)*16+x%16]
+	return img.paletteIndex[z/16*32+x/16][(z%16)*16+x%16]
 }
 
-// draw the image
+// Draw the image
 func (img *biomeImage) draw(chunckX, chunckZ int, biome interface{}) error {
-	chunck := img[chunckZ*32+chunckX][:]
+	chunck := img.paletteIndex[chunckZ*32+chunckX][:]
 	switch biome := biome.(type) {
 	case nil:
 	case []byte:
@@ -90,4 +91,39 @@ func (img *biomeImage) draw(chunckX, chunckZ int, biome interface{}) error {
 		return fmt.Errorf("The biome is %T (expected byte or int32 array, or nothing)", biome)
 	}
 	return nil
+}
+
+// After draw on all chunck, select only used color. Do not used draw after.
+func (img *biomeImage) processPalette() {
+	// Seach use color
+	var usedColors [256]bool
+	for _, chunck := range img.paletteIndex {
+		for _, c := range chunck {
+			usedColors[c] = true
+		}
+	}
+	var nbUsedColor = 0
+	for _, b := range usedColors {
+		if b {
+			nbUsedColor++
+		}
+	}
+
+	img.palette = make(color.Palette, nbUsedColor)
+	var colorCorrelation [256]uint8
+	var fillingIndex = uint8(0)
+	for colorIndex, used := range usedColors {
+		if !used {
+			continue
+		}
+		img.palette[fillingIndex] = minecraftColor.BiomePalette[colorIndex]
+		colorCorrelation[colorIndex] = fillingIndex
+		fillingIndex++
+	}
+
+	for i := range img.paletteIndex {
+		for j, oldColor := range img.paletteIndex[i] {
+			img.paletteIndex[i][j] = colorCorrelation[oldColor]
+		}
+	}
 }
