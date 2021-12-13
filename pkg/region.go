@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
 	"image"
 	"image/color"
 	"image/png"
@@ -16,9 +17,9 @@ import (
 type region struct {
 	X, Z    int
 	g       *generator
-	biome   biomeImage
+	biome   regionImage
 	bloc    *image.RGBA
-	height  *image.RGBA
+	height  regionImage
 	structs []structure
 }
 
@@ -50,8 +51,9 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		g:      g,
 		X:      x,
 		Z:      z,
+		biome:  regionImage{palette: minecraftColor.BiomePalette},
 		bloc:   image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
-		height: image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
+		height: regionImage{palette: minecraftColor.HeightPalette},
 	}
 
 	for x := 0; x < 32; x++ {
@@ -77,9 +79,9 @@ func parseRegion(g *generator, x, z int, data []byte) {
 	r.g.bar.Increment()
 
 	name := fmt.Sprintf("%d.%d.png", r.X, r.Z)
-	r.saveImageBiome(name)
+	r.g.saveImage("biome", name, &r.biome)
 	r.saveImage("bloc", name, r.bloc)
-	r.saveImage("height", name, r.height)
+	r.g.saveImage("height", name, &r.height)
 	r.saveStructs()
 }
 
@@ -108,17 +110,6 @@ func (r *region) saveImage(dir, name string, img image.Image) {
 	png.Encode(&buff, img)
 
 	if err := r.g.Out.Create(dir, name, buff.Bytes()); err != nil {
-		r.g.Error(fmt.Errorf("Fail to save image: %v", err))
-	}
-}
-
-func (r *region) saveImageBiome(name string) {
-	r.biome.processPalette()
-
-	buff := bytes.Buffer{}
-	png.Encode(&buff, &r.biome)
-
-	if err := r.g.Out.Create("biome", name, buff.Bytes()); err != nil {
 		r.g.Error(fmt.Errorf("Fail to save image: %v", err))
 	}
 }

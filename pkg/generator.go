@@ -1,14 +1,16 @@
 // BSD 3-Clause License in LICENSE file at the project root.
-// Copyright (c) 2020, Hugues GUILLEUS
+// Copyright (c) 2021, Hugues GUILLEUS
 // All rights reserved.
 
 package blache
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/HuguesGuilleus/blache/pkg/cpumutex"
 	"github.com/HuguesGuilleus/blache/web"
+	"image/png"
 	"io/fs"
 	"path"
 	"sort"
@@ -115,5 +117,17 @@ func (g *generator) saveRegionsList() {
 	}
 	if err := g.Out.Create("", "regions.json", data); err != nil {
 		g.Error(fmt.Errorf("Write regions.json fail: %w", err))
+	}
+}
+
+// Encode the Image in PNG and store it.
+func (g *generator) saveImage(kind, name string, img *regionImage) {
+	img.processPalette()
+
+	buff := bytes.Buffer{}
+	png.Encode(&buff, img)
+
+	if err := g.Out.Create(kind, name, buff.Bytes()); err != nil {
+		g.Error(fmt.Errorf("Fail to save image: %v", err))
 	}
 }

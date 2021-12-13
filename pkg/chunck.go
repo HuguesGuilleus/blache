@@ -1,5 +1,5 @@
 // BSD 3-Clause License in LICENSE file at the project root.
-// Copyright (c) 2020, Hugues GUILLEUS
+// Copyright (c) 2021, Hugues GUILLEUS
 // All rights reserved.
 
 package blache
@@ -52,14 +52,14 @@ func (r *region) drawChunck(data []byte, x, z int) error {
 	}
 
 	// Draw biome tile.
-	if err := r.biome.draw(x, z, c.Level.Biomes); err != nil {
+	if err := r.biome.drawBiome(x, z, c.Level.Biomes); err != nil {
 		return err
 	}
 
 	// Draw bloc and height tiles.
 	palette := c.genPalette()
 	bloc := subImage(r.bloc, x, z)
-	height := subImage(r.height, x, z)
+	height := r.height.chunck(x, z)
 	for x := 0; x < 16; x++ {
 	nextBloc:
 		for z := 0; z < 16; z++ {
@@ -77,7 +77,7 @@ func (r *region) drawChunck(data []byte, x, z int) error {
 					if col := colors[i]; col.A == 0xFF {
 						bloc(x, z, col)
 						h := sec.Y*16 + uint8(y)
-						height(x, z, color.RGBA{h, h, h, 0xFF})
+						height[z*16+x] = h
 						continue nextBloc
 					}
 				}
