@@ -9,18 +9,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
-	"image"
-	"image/color"
-	"image/png"
 )
 
 type region struct {
 	X, Z    int
 	g       *generator
 	biome   regionImage
-	bloc    *image.RGBA
+	bloc    regionImage
 	height  regionImage
 	structs []structure
+	// To uncompress chunck data
+	buff bytes.Buffer
 }
 
 type structure struct {
@@ -52,7 +51,7 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		X:      x,
 		Z:      z,
 		biome:  regionImage{palette: minecraftColor.BiomePalette},
-		bloc:   image.NewRGBA(image.Rect(0, 0, 32*16, 32*16)),
+		bloc:   regionImage{palette: minecraftColor.BlockPalette},
 		height: regionImage{palette: minecraftColor.HeightPalette},
 	}
 
@@ -70,8 +69,8 @@ func parseRegion(g *generator, x, z int, data []byte) {
 				g.Error(fmt.Errorf("In region (%d,%d), in chunck (%d,%d) Unknown compress, expected 2, found %d", r.X, r.Z, x, z, typeOfCompress))
 				continue
 			}
-			if err := r.drawChunck(data[addr+5:addr+4+l], x, z); err != nil {
-				g.Error(fmt.Errorf("In region (%d,%d), in chunck (%d,%d) %w", r.X, r.Z, x, z, err))
+			if err := drawChunck(&r, data[addr+5:addr+4+l], x, z); err != nil {
+				g.Error(fmt.Errorf("In region (%d,%d), in chunck (%d,%d): %w", r.X, r.Z, x, z, err))
 			}
 		}
 	}
@@ -80,7 +79,7 @@ func parseRegion(g *generator, x, z int, data []byte) {
 
 	name := fmt.Sprintf("%d.%d.png", r.X, r.Z)
 	r.g.saveImage("biome", name, &r.biome)
-	r.saveImage("bloc", name, r.bloc)
+	r.g.saveImage("bloc", name, &r.bloc)
 	r.g.saveImage("height", name, &r.height)
 	r.saveStructs()
 }
@@ -104,31 +103,10 @@ func (r *region) saveStructs() {
 	}
 }
 
-// Save an image of one region.
-func (r *region) saveImage(dir, name string, img image.Image) {
-	buff := bytes.Buffer{}
-	png.Encode(&buff, img)
-
-	if err := r.g.Out.Create(dir, name, buff.Bytes()); err != nil {
-		r.g.Error(fmt.Errorf("Fail to save image: %v", err))
-	}
-}
-
 // Convert a slice of bytes to int, with bigendian.
 func bytesToInt(tab []byte) (n int) {
 	for _, b := range tab {
 		n = n<<8 + int(b)
 	}
 	return n
-}
-
-/* IMAGE */
-
-// A function to set a pixel with a predefined offset.
-type imgSetRGBA func(x, z int, c color.RGBA)
-
-func subImage(img *image.RGBA, chunckX, chunckZ int) imgSetRGBA {
-	return func(x, z int, c color.RGBA) {
-		img.SetRGBA(x+16*chunckX, z+16*chunckZ, c)
-	}
 }

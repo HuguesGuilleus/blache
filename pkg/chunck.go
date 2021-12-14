@@ -9,11 +9,11 @@ import (
 	"compress/zlib"
 	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
 	"github.com/Tnze/go-mc/nbt"
-	"image/color"
+	"io"
 	"sort"
 )
 
-// On column of 16*16*256 blocks.
+// On column of 16*16*256 block = 16 section.
 type chunck struct {
 	Level struct {
 		Biomes     interface{}
@@ -33,12 +33,15 @@ type section struct {
 	BlockStates []int64
 }
 
-func (r *region) drawChunck(data []byte, x, z int) error {
+func drawChunck(r *region, raw []byte, x, z int) error {
 	// Decompress data and parse minecraft data
 	c := chunck{}
-	if reader, err := zlib.NewReader(bytes.NewReader(data)); err != nil {
+	r.buff.Reset()
+	if zlibReader, err := zlib.NewReader(bytes.NewReader(raw)); err != nil {
 		return err
-	} else if err := nbt.NewDecoder(reader).Decode(&c); err != nil {
+	} else if _, err := io.Copy(&r.buff, zlibReader); err != nil {
+		return err
+	} else if err := nbt.Unmarshal(r.buff.Bytes(), &c); err != nil {
 		return err
 	}
 
@@ -56,16 +59,20 @@ func (r *region) drawChunck(data []byte, x, z int) error {
 		return err
 	}
 
-	// Draw bloc and height tiles.
+	drawBlockAndHeight(&c, r.bloc.chunck(x, z), r.height.chunck(x, z))
+
+	return nil
+}
+
+// Draw bloc and height tiles.
+func drawBlockAndHeight(c *chunck, bloc, height []uint8) {
 	palette := c.genPalette()
-	bloc := subImage(r.bloc, x, z)
-	height := r.height.chunck(x, z)
 	for x := 0; x < 16; x++ {
 	nextBloc:
 		for z := 0; z < 16; z++ {
 			for _, sec := range c.Level.Sections {
 				size := 64 * len(sec.BlockStates) / 4096
-				m := uint64((1 << size) - 1)
+				mask := uint64((1 << size) - 1)
 				nb := 64 / size
 				colors := palette[sec.Y]
 				for y := 15; -1 < y; y-- {
@@ -73,9 +80,9 @@ func (r *region) drawChunck(data []byte, x, z int) error {
 					if p/nb >= len(sec.BlockStates) {
 						continue
 					}
-					i := uint64(sec.BlockStates[p/nb]>>(p%nb*size)) & m
-					if col := colors[i]; col.A == 0xFF {
-						bloc(x, z, col)
+					i := uint64(sec.BlockStates[p/nb]>>(p%nb*size)) & mask
+					if col := colors[i]; col != 0 {
+						bloc[z*16+x] = col
 						h := sec.Y*16 + uint8(y)
 						height[z*16+x] = h
 						continue nextBloc
@@ -84,12 +91,10 @@ func (r *region) drawChunck(data []byte, x, z int) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 // Generate the palette
-func (c *chunck) genPalette() (p [16][]color.RGBA) {
+func (c *chunck) genPalette() (p [16][]uint8) {
 	secs := make([]section, 0, len(c.Level.Sections))
 	for _, s := range c.Level.Sections {
 		if len(s.BlockStates) > 0 {
@@ -103,13 +108,9 @@ func (c *chunck) genPalette() (p [16][]color.RGBA) {
 	})
 
 	for _, sec := range c.Level.Sections {
-		y := sec.Y
-		size := 64 * len(sec.BlockStates) / 4096
-		l := 1 << size
-		p[y] = make([]color.RGBA, l, l)
-
+		p[sec.Y] = make([]uint8, 1<<(64*len(sec.BlockStates)/4096))
 		for i, b := range sec.Palette {
-			p[y][i] = minecraftColor.GetBloc(b.Name)
+			p[sec.Y][i] = minecraftColor.BlocColorIndex(b.Name)
 		}
 	}
 

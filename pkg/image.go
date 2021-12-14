@@ -42,7 +42,9 @@ func (img *regionImage) chunck(chunckX, chunckZ int) []uint8 {
 
 // After draw on all chunck, select only used color. Do not used draw after.
 func (img *regionImage) processPalette() {
-	// Seach use color
+	// We use arrays with 256 (the pallette can be smaller) to avoid allocation.
+
+	// Seach used color
 	var usedColors [256]bool
 	for _, chunck := range img.pixels {
 		for _, c := range chunck {
@@ -56,11 +58,12 @@ func (img *regionImage) processPalette() {
 		}
 	}
 
+	// Create the new palette and corellation table.
 	palette := make(color.Palette, nbUsedColor)
 	var colorCorrelation [256]uint8
 	var fillingIndex = uint8(0)
-	for colorIndex, used := range usedColors {
-		if !used {
+	for colorIndex := 0; colorIndex < len(img.palette); colorIndex++ {
+		if !usedColors[colorIndex] {
 			continue
 		}
 		palette[fillingIndex] = img.palette[colorIndex]
