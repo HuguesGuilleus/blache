@@ -49,7 +49,7 @@ func Generate(option Option) {
 		return
 	}
 
-	g.bar.Total += (32*32 + 1) * int64(len(files))
+	g.bar.Total += (32*32 + 1 + regionNumberOfImage) * int64(len(files))
 	g.wg.Add(len(files))
 	defer g.wg.Wait()
 
@@ -122,6 +122,8 @@ func (g *generator) saveRegionsList() {
 
 // Encode the Image in PNG and store it.
 func (g *generator) saveImage(kind, name string, img *regionImage) {
+	defer g.bar.Increment()
+
 	img.processPalette()
 
 	buff := bytes.Buffer{}

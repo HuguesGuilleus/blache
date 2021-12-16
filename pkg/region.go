@@ -11,6 +11,8 @@ import (
 	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
 )
 
+const regionNumberOfImage = 3
+
 type region struct {
 	X, Z    int
 	g       *generator
