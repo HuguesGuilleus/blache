@@ -8,6 +8,7 @@ import (
 	"image/color"
 )
 
+// Standard palette for Height, color.Gray inside.
 var HeightPalette color.Palette = func() (palette color.Palette) {
 	palette = make(color.Palette, 256)
 	for i := range palette {
