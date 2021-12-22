@@ -9,13 +9,15 @@ import (
 	"reflect"
 )
 
+/* Assign to simple value */
+
 func (r *reader) assignByte(value reflect.Value) error {
 	b, err := r.readByte()
 	if err != nil {
 		return fmt.Errorf("Read a byte fail: %w", err)
 	}
 	if !value.CanSet() {
-		return fmt.Errorf("Can set: %s", value.Type())
+		return fmt.Errorf("Can not set: %s", value.Type())
 	}
 
 	switch value.Type().Kind() {
@@ -27,5 +29,21 @@ func (r *reader) assignByte(value reflect.Value) error {
 		return fmt.Errorf("Can not assign an byte to a %s", value.Type())
 	}
 
+	return nil
+}
+
+func (r *reader) assignString(value reflect.Value) error {
+	s, err := r.readString()
+	if err != nil {
+		return err
+	}
+
+	if value.Type().Kind() != reflect.String {
+		return fmt.Errorf("%w type:string to %s", ErrorWrongType, value.String())
+	} else if value.CanSet() == false {
+		return fmt.Errorf("%w %s", ErrorValueCanNotbeSet, value.String())
+	}
+
+	value.SetString(s)
 	return nil
 }

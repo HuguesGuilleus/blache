@@ -11,24 +11,25 @@ import (
 )
 
 const (
-	tagEnd byte = iota
-	tagByte
-	tagInt16   // TAG_Short
-	tagInt32   // TAG_Int
-	tagInt64   // TAG_Long
-	tagFloat32 // TAG_Float
-	tagFloat64 // TAG_Double
-	tagBytes   // TAG_Byte_Array
-	tagString
-	tagList
-	tagCompound
-	tagInt32Array // TAG_Int_Array
-	tagInt64Array // TAG_Long_Array
+	tagEnd        byte = iota // TAG_End
+	tagByte                   // TAG_Byte
+	tagInt16                  // TAG_Short
+	tagInt32                  // TAG_Int
+	tagInt64                  // TAG_Long
+	tagFloat32                // TAG_Float
+	tagFloat64                // TAG_Double
+	tagBytes                  // TAG_Byte_Array
+	tagString                 // TAG_String
+	tagList                   // TAG_List
+	tagCompound               // TAG_Compound
+	tagInt32Array             // TAG_Int_Array
+	tagInt64Array             // TAG_Long_Array
+
 )
 
 func Unmarshal(data []byte, destination interface{}) error {
 	r := reader(data)
-	return r.unmarshal(reflect.ValueOf(destination))
+	return r.assignRoot(reflect.ValueOf(destination))
 }
 
 func (r *reader) unmarshal(value reflect.Value) error {
