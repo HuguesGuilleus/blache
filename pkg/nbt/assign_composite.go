@@ -48,8 +48,6 @@ func (r *reader) assignCompound(mapParent reflect.Value) error {
 			return fmt.Errorf("Assign map[string]%s fail: %w", mapParent.Type().Elem(), err)
 		}
 	}
-
-	return nil
 }
 
 func (r *reader) assignMapItem(mapParent reflect.Value, tagType byte) error {
@@ -76,6 +74,18 @@ func (r *reader) assignMapItem(mapParent reflect.Value, tagType byte) error {
 
 func (r *reader) assignValue(tagType byte, value reflect.Value) error {
 	switch tagType {
+	case tagByte:
+		return r.assignByte(value)
+	case tagInt16:
+		return r.assignInt16(value)
+	case tagInt32:
+		return r.assignInt32(value)
+	case tagInt64:
+		return r.assignInt64(value)
+	case tagFloat32:
+		return r.assignFloat32(value)
+	case tagFloat64:
+		return r.assignFloat64(value)
 	case tagString:
 		return r.assignString(value)
 
@@ -88,6 +98,4 @@ func (r *reader) assignValue(tagType byte, value reflect.Value) error {
 	default:
 		return fmt.Errorf("Unknown this tag: %d", tagType)
 	}
-
-	return nil
 }
