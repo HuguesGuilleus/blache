@@ -7,35 +7,16 @@ package blache
 import (
 	"bytes"
 	"compress/zlib"
+	"github.com/HuguesGuilleus/blache/pkg/chunck"
 	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
 	"github.com/Tnze/go-mc/nbt"
 	"io"
 	"sort"
 )
 
-// On column of 16*16*256 block = 16 section.
-type chunck struct {
-	Level struct {
-		Biomes     interface{}
-		Sections   []section
-		Structures struct {
-			Starts map[string]struct{}
-		}
-	}
-}
-
-// One section, 16*16*16 block.
-type section struct {
-	Y       uint8
-	Palette []struct {
-		Name string
-	}
-	BlockStates []int64
-}
-
 func drawChunck(r *region, raw []byte, x, z int) error {
 	// Decompress data and parse minecraft data
-	c := chunck{}
+	c := chunck.Chunck{}
 	r.buff.Reset()
 	if zlibReader, err := zlib.NewReader(bytes.NewReader(raw)); err != nil {
 		return err
@@ -65,8 +46,8 @@ func drawChunck(r *region, raw []byte, x, z int) error {
 }
 
 // Draw bloc and height tiles.
-func drawBlockAndHeight(c *chunck, bloc, height []uint8) {
-	palette := c.genPalette()
+func drawBlockAndHeight(c *chunck.Chunck, bloc, height []uint8) {
+	palette := genPalette(c)
 	for x := 0; x < 16; x++ {
 	nextBloc:
 		for z := 0; z < 16; z++ {
@@ -94,8 +75,8 @@ func drawBlockAndHeight(c *chunck, bloc, height []uint8) {
 }
 
 // Generate the palette
-func (c *chunck) genPalette() (p [16][]uint8) {
-	secs := make([]section, 0, len(c.Level.Sections))
+func genPalette(c *chunck.Chunck) (p [16][]uint8) {
+	secs := make([]chunck.Section, 0, len(c.Level.Sections))
 	for _, s := range c.Level.Sections {
 		if len(s.BlockStates) > 0 {
 			secs = append(secs, s)
