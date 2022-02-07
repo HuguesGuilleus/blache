@@ -103,7 +103,7 @@ func (g *generator) fileFail(format string, args ...interface{}) {
 	g.wg.Done()
 
 	if format != "" {
-		g.Error(fmt.Errorf(format, args))
+		g.Error(fmt.Errorf(format, args...))
 	}
 }
 
