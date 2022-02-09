@@ -9,7 +9,6 @@ import (
 	"compress/zlib"
 	"github.com/HuguesGuilleus/blache/pkg/chunck"
 	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
-	"github.com/Tnze/go-mc/nbt"
 	"io"
 	"sort"
 )
@@ -22,7 +21,7 @@ func drawChunck(r *region, raw []byte, x, z int) error {
 		return err
 	} else if _, err := io.Copy(&r.buff, zlibReader); err != nil {
 		return err
-	} else if err := nbt.Unmarshal(r.buff.Bytes(), &c); err != nil {
+	} else if err := c.DecodeNBT(r.buff.Bytes()); err != nil {
 		return err
 	}
 
