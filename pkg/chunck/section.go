@@ -29,7 +29,7 @@ func (section *Section) decodeNBT(tagType byte, name string, r *reader) error {
 
 	case "Palette":
 		if tagType != tagList {
-			return expectedTagList(tagType)
+			return expectedTag(tagList, tagType)
 		}
 
 		itemType, paletteLen, err := r.readListMeta()

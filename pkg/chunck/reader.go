@@ -44,7 +44,7 @@ type reader []byte
 func (r *reader) readTree(saver func(tagType byte, name string, r *reader) error) error {
 	return r.readCompound(func(tagType byte, _ string, r *reader) error {
 		if tagType != tagCompound {
-			return expectedTagCompound(tagType)
+			return expectedTag(tagCompound, tagType)
 		}
 		if err := r.readCompound(saver); err != nil {
 			return err

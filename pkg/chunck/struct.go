@@ -28,10 +28,10 @@ func (chunck *Chunck) decodeChunck(tagType byte, name string, r *reader) error {
 	switch name {
 	case "Level":
 		if tagType != tagCompound {
-			return expectedTagCompound(tagType)
+			return expectedTag(tagCompound, tagType)
 		}
 		if err := r.readCompound(chunck.decodeLevel); err != nil {
-			return nil
+			return err
 		}
 		return exitWalk
 	default:

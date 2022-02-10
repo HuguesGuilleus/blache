@@ -8,16 +8,6 @@ import (
 	"fmt"
 )
 
-func expectedTagCompound(tag byte) error {
-	return expectedTag(tagCompound, tag)
-}
-func expectedTagList(tag byte) error {
-	return expectedTag(tagList, tag)
-}
-func expectedTagType(expected string, received byte) error {
-	return fmt.Errorf("Expected a %s type, found: %s", expected, tag2string(received))
-}
-
 // Create a fmt error
 func expectedTag(expected, received byte) error {
 	return fmt.Errorf("Expected a %s but found %s", tag2string(expected), tag2string(received))
