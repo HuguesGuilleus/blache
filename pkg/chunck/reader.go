@@ -102,8 +102,7 @@ func (r *reader) skip(tagType byte) error {
 		r.skipBytes(8)
 
 	case tagString:
-		_, err := r.readString()
-		return err
+		r.skipString()
 
 	case tagBytes:
 		return r.skipArray(1)
@@ -127,12 +126,33 @@ func (r *reader) skip(tagType byte) error {
 			}
 		}
 	case tagCompound:
-		return r.readCompound(func(_ byte, _ string, _ *reader) error {
-			return skipNode
-		})
+		return r.skipCompound()
 	}
-
 	return nil
+}
+
+func (r *reader) skipCompound() error {
+	for {
+		tagType, err := r.readByte()
+		if err != nil {
+			return fmt.Errorf("Read tag type: %w", err)
+		} else if tagType > tagBigger {
+			return invalidTag(tagType)
+		} else if tagType == tagEnd {
+			return nil
+		}
+		r.skipString()
+
+		if err := r.skip(tagType); err != nil {
+			return fmt.Errorf("Skip fail: %w", err)
+		}
+	}
+}
+
+// Skip the string primitive value.
+func (r *reader) skipString() {
+	strLen, _ := r.readInt16()
+	r.skipBytes(int(strLen))
 }
 
 // Skip the array data.
