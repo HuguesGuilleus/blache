@@ -180,21 +180,6 @@ func (r *reader) readListMeta(expectedTagType byte) (listLen int, err error) {
 	return
 }
 
-// Read playload of a NBT array of bytes, int32 or int64.
-func (r *reader) readArray(itemLen int) (arrayLen int, data []byte, err error) {
-	arrayLen, err = r.readLen()
-	if err != nil {
-		return 0, nil, err
-	}
-	size := arrayLen * itemLen
-	if len(*r) < size {
-		return 0, nil, fmt.Errorf("Array size (%d * %d byte) bigger NBT data (len:%d)", arrayLen, itemLen, len(*r))
-	}
-	data = (*r)[:size]
-	*r = (*r)[size:]
-	return arrayLen, data, nil
-}
-
 // Read the len of an Array or a List.
 func (r *reader) readLen() (int, error) {
 	len32, err := r.readInt32()

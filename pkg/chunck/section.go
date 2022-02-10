@@ -48,20 +48,10 @@ func (section *Section) decodeNBT(tagType byte, name string, r *reader) error {
 		if tagType != tagInt64Array {
 			return expectedTag(tagInt64Array, tagType)
 		}
-		l, bytes, err := r.readArray(8)
+		var err error
+		section.BlockStates, err = r.readInt64Array()
 		if err != nil {
 			return err
-		}
-		section.BlockStates = make([]int64, l, l)
-		for i := range section.BlockStates {
-			section.BlockStates[i] = int64(bytes[i*8+0])<<56 +
-				int64(bytes[i*8+1])<<48 +
-				int64(bytes[i*8+2])<<40 +
-				int64(bytes[i*8+3])<<32 +
-				int64(bytes[i*8+4])<<24 +
-				int64(bytes[i*8+5])<<16 +
-				int64(bytes[i*8+6])<<8 +
-				int64(bytes[i*8+7])
 		}
 
 	default:

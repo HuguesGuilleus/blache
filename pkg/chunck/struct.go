@@ -37,6 +37,17 @@ func (chunck *Chunck) decodeChunck(tagType byte, name string, r *reader) error {
 
 func (chunck *Chunck) decodeLevel(tagType byte, name string, r *reader) error {
 	switch name {
+	case "Biomes":
+		var err error
+		switch tagType {
+		case tagBytes:
+			chunck.Level.Biomes, err = r.readBytesArray()
+		case tagInt32Array:
+			chunck.Level.Biomes, err = r.readInt32Array()
+		default:
+			return skipNode
+		}
+		return err
 	case "Sections":
 		if tagType != tagList {
 			return expectedTag(tagList, tagType)
