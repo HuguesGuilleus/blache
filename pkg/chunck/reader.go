@@ -149,6 +149,15 @@ func (r *reader) readTagMeta() (tagType byte, name string, err error) {
 	return
 }
 
+func (r *reader) readListMeta() (tagType byte, listLen int, err error) {
+	tagType, err = r.readByte()
+	if err != nil {
+		return 0, 0, fmt.Errorf("Read list item tagType: %w", err)
+	}
+	listLen, err = r.readLen()
+	return
+}
+
 // Read playload of a NBT array of bytes, int32 or int64.
 func (r *reader) readArray(itemLen int) (arrayLen int, data []byte, err error) {
 	arrayLen, err = r.readLen()
