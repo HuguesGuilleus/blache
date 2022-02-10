@@ -8,41 +8,51 @@ import (
 	"fmt"
 )
 
-func expectedTagCompound(tagType byte) error {
-	return expectedTagType("TAG_Compound", tagType)
+func expectedTagCompound(tag byte) error {
+	return expectedTag(tagCompound, tag)
 }
-func expectedTagList(tagType byte) error {
-	return expectedTagType("TAG_List", tagType)
+func expectedTagList(tag byte) error {
+	return expectedTag(tagList, tag)
 }
-func expectedTagType(expected string, recevied byte) error {
-	receviedName := ""
-	switch recevied {
+func expectedTagType(expected string, received byte) error {
+	return fmt.Errorf("Expected a %s type, found: %s", expected, tag2string(received))
+}
+
+// Create a fmt error
+func expectedTag(expected, received byte) error {
+	return fmt.Errorf("Expected a %s but found: %s", tag2string(expected), tag2string(received))
+}
+
+// Return the tag in string with the based format.
+func tag2string(tag byte) string {
+	switch tag {
 	case tagEnd:
-		receviedName = "TAG_End"
+		return "TAG_End"
 	case tagByte:
-		receviedName = "TAG_Byte"
+		return "TAG_Byte"
 	case tagInt16:
-		receviedName = "TAG_Short"
+		return "TAG_Short"
 	case tagInt32:
-		receviedName = "TAG_Int"
+		return "TAG_Int"
 	case tagInt64:
-		receviedName = "TAG_Long"
+		return "TAG_Long"
 	case tagFloat32:
-		receviedName = "TAG_Float"
+		return "TAG_Float"
 	case tagFloat64:
-		receviedName = "TAG_Double"
+		return "TAG_Double"
 	case tagBytes:
-		receviedName = "TAG_Byte_Array"
+		return "TAG_Byte_Array"
 	case tagString:
-		receviedName = "TAG_String"
+		return "TAG_String"
 	case tagList:
-		receviedName = "TAG_List"
+		return "TAG_List"
 	case tagCompound:
-		receviedName = "TAG_Compound"
+		return "TAG_Compound"
 	case tagInt32Array:
-		receviedName = "TAG_Int_Array"
+		return "TAG_Int_Array"
 	case tagInt64Array:
-		receviedName = "TAG_Long_Array"
+		return "TAG_Long_Array"
+	default:
+		return fmt.Sprintf("Unknown tag type: %d", tag)
 	}
-	return fmt.Errorf("Expected a %s type, found: %s", expected, receviedName)
 }
