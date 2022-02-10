@@ -5,6 +5,7 @@
 package chunck
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -29,8 +30,41 @@ const (
 	tagBigger = tagInt64Array
 )
 
+// A fake error used to ask to skip this node.
+var skipNode = errors.New("Skip this node")
+
 // The reader
 type reader []byte
+
+// Read a NBT Compound, and to each
+func (r *reader) readCompound(saver func(tagType byte, name string, r *reader) error) error {
+	for {
+		tagType, err := r.readByte()
+		if err != nil {
+			return fmt.Errorf("Read tag type: %w", err)
+		} else if tagType > tagBigger {
+			return fmt.Errorf("Read invalid tag type: %d", tagType)
+		} else if tagType == tagEnd {
+			return nil
+		}
+
+		name, err := r.readString()
+		if err != nil {
+			return fmt.Errorf("Read tag name: %w", err)
+		}
+
+		switch err := saver(tagType, name, r); err {
+		case nil:
+			// ok
+		case skipNode:
+			if err := r.skip(tagType); err != nil {
+				return fmt.Errorf("Skip %q: %w", name, err)
+			}
+		default:
+			return fmt.Errorf("Decode %q %w", name, err)
+		}
+	}
+}
 
 // Skip the value mabe nested of the tag.
 func (r *reader) skip(tagType byte) error {
@@ -48,12 +82,17 @@ func (r *reader) skip(tagType byte) error {
 	case tagFloat64:
 		r.skipBytes(8)
 
-	case tagBytes:
-		return r.skipArray(1)
-
 	case tagString:
 		_, err := r.readString()
 		return err
+
+	case tagBytes:
+		return r.skipArray(1)
+	case tagInt32Array:
+		return r.skipArray(4)
+	case tagInt64Array:
+		return r.skipArray(8)
+
 	case tagList:
 		tagType, err := r.readByte()
 		if err != nil {
@@ -69,31 +108,19 @@ func (r *reader) skip(tagType byte) error {
 			}
 		}
 	case tagCompound:
-		for {
-			tagType, _, err := r.readTagMeta()
-			if err != nil {
-				return err
-			} else if tagType == tagEnd {
-				break
-			}
-			err = r.skip(tagType)
-			if err != nil {
-				return err
-			}
-		}
-	case tagInt32Array:
-		return r.skipArray(4)
-	case tagInt64Array:
-		return r.skipArray(8)
+		return r.readCompound(func(_ byte, _ string, _ *reader) error {
+			return skipNode
+		})
 	}
 
 	return nil
 }
 
+// Skip the array data.
 func (r *reader) skipArray(elemSize int) error {
 	len, err := r.readLen()
 	if err != nil {
-		return err
+		return fmt.Errorf("Skip array: %w", err)
 	}
 	r.skipBytes(len * elemSize)
 	return nil
@@ -122,8 +149,9 @@ func (r *reader) readTagMeta() (tagType byte, name string, err error) {
 	return
 }
 
-func (r *reader) readArray(itemLen int) (int, []byte, error) {
-	arrayLen, err := r.readLen()
+// Read playload of a NBT array of bytes, int32 or int64.
+func (r *reader) readArray(itemLen int) (arrayLen int, data []byte, err error) {
+	arrayLen, err = r.readLen()
 	if err != nil {
 		return 0, nil, err
 	}
@@ -131,12 +159,12 @@ func (r *reader) readArray(itemLen int) (int, []byte, error) {
 	if len(*r) < size {
 		return 0, nil, fmt.Errorf("Array size (%d * %d byte) bigger NBT data (len:%d)", arrayLen, itemLen, len(*r))
 	}
-	data := (*r)[:size]
+	data = (*r)[:size]
 	*r = (*r)[size:]
 	return arrayLen, data, nil
 }
 
-// Read the len of an Array, make conversion to get a int from a int32.
+// Read the len of an Array or a List.
 func (r *reader) readLen() (int, error) {
 	len32, err := r.readInt32()
 	if err != nil {
@@ -147,6 +175,7 @@ func (r *reader) readLen() (int, error) {
 
 /* Primitive value sreader */
 
+// Read a primitive byte.
 func (r *reader) readByte() (b byte, err error) {
 	if len(*r) == 0 {
 		return 0, fmt.Errorf("Read byte fail because %w", io.ErrUnexpectedEOF)
@@ -156,6 +185,7 @@ func (r *reader) readByte() (b byte, err error) {
 	return
 }
 
+// Read a primitive int16.
 func (r *reader) readInt16() (i int16, err error) {
 	if len(*r) < 2 {
 		return 0, fmt.Errorf("Read int16 fail because %w", io.ErrUnexpectedEOF)
@@ -168,6 +198,7 @@ func (r *reader) readInt16() (i int16, err error) {
 	return
 }
 
+// Read a primitive int32.
 func (r *reader) readInt32() (i int32, err error) {
 	if len(*r) < 4 {
 		return 0, fmt.Errorf("Read int32 fail because %w", io.ErrUnexpectedEOF)
@@ -182,6 +213,7 @@ func (r *reader) readInt32() (i int32, err error) {
 	return
 }
 
+// Read a primitive int64.
 func (r *reader) readInt64() (i int64, err error) {
 	if len(*r) < 8 {
 		return 0, fmt.Errorf("Read int64 fail because %w", io.ErrUnexpectedEOF)
@@ -200,6 +232,7 @@ func (r *reader) readInt64() (i int64, err error) {
 	return
 }
 
+// Read a primitive float32.
 func (r *reader) readFloat32() (float32, error) {
 	i, err := r.readInt32()
 	if err != nil {
@@ -208,6 +241,7 @@ func (r *reader) readFloat32() (float32, error) {
 	return math.Float32frombits(uint32(i)), nil
 }
 
+// Read a primitive float64
 func (r *reader) readFloat64() (float64, error) {
 	i, err := r.readInt64()
 	if err != nil {
@@ -216,6 +250,7 @@ func (r *reader) readFloat64() (float64, error) {
 	return math.Float64frombits(uint64(i)), nil
 }
 
+// Read a NBT primitive string (len + content).
 func (r *reader) readString() (s string, err error) {
 	var strLen16 int16
 	strLen16, err = r.readInt16()
