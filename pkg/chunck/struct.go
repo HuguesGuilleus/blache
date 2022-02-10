@@ -4,10 +4,6 @@
 
 package chunck
 
-import (
-	"fmt"
-)
-
 // On column of 16*16*256 block = 16 section.
 type Chunck struct {
 	Level struct {
@@ -45,13 +41,9 @@ func (chunck *Chunck) decodeLevel(tagType byte, name string, r *reader) error {
 		if tagType != tagList {
 			return expectedTag(tagList, tagType)
 		}
-		sectionType, listLen, err := r.readListMeta()
+		listLen, err := r.readListMeta(tagCompound)
 		if err != nil {
 			return err
-		} else if sectionType == tagEnd {
-			return nil
-		} else if sectionType != tagCompound {
-			return fmt.Errorf("list item type %w", expectedTag(tagCompound, sectionType))
 		}
 		chunck.Level.Sections = make([]Section, listLen, listLen)
 		for i := range chunck.Level.Sections {

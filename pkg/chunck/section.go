@@ -32,11 +32,9 @@ func (section *Section) decodeNBT(tagType byte, name string, r *reader) error {
 			return expectedTag(tagList, tagType)
 		}
 
-		itemType, paletteLen, err := r.readListMeta()
+		paletteLen, err := r.readListMeta(tagCompound)
 		if err != nil {
 			return err
-		} else if itemType != tagCompound {
-			return expectedTag(tagCompound, tagType)
 		}
 
 		section.Palette = make([]PaletteItem, paletteLen, paletteLen)

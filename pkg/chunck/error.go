@@ -8,6 +8,11 @@ import (
 	"fmt"
 )
 
+// Create error for invalid tag type.
+func invalidTag(tagType byte) error {
+	return fmt.Errorf("Read invalid tag type: %d", tagType)
+}
+
 // Create a fmt error
 func expectedTag(expected, received byte) error {
 	return fmt.Errorf("Expected a %s but found %s", tag2string(expected), tag2string(received))

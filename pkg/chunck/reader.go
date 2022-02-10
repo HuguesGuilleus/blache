@@ -60,7 +60,7 @@ func (r *reader) readCompound(saver func(tagType byte, name string, r *reader) e
 		if err != nil {
 			return fmt.Errorf("Read tag type: %w", err)
 		} else if tagType > tagBigger {
-			return fmt.Errorf("Read invalid tag type: %d", tagType)
+			return invalidTag(tagType)
 		} else if tagType == tagEnd {
 			return nil
 		}
@@ -154,12 +154,29 @@ func (r *reader) skipBytes(skipBytes int) {
 	}
 }
 
-func (r *reader) readListMeta() (tagType byte, listLen int, err error) {
+// Check the list item type and read the lenght of the list.
+//
+// If the type if TAG_End and the list is empty, no return error.
+func (r *reader) readListMeta(expectedTagType byte) (listLen int, err error) {
+	var tagType byte
 	tagType, err = r.readByte()
 	if err != nil {
-		return 0, 0, fmt.Errorf("Read list item tagType: %w", err)
+		return 0, fmt.Errorf("Read list item tagType: %w", err)
+	} else if tagType > tagBigger {
+		return 0, invalidTag(tagType)
 	}
+
 	listLen, err = r.readLen()
+	if err != nil {
+		return 0, err
+	}
+
+	if tagType == tagEnd && listLen == 0 {
+		return 0, nil
+	} else if tagType != expectedTagType {
+		return 0, fmt.Errorf("list item type %w", expectedTag(expectedTagType, tagType))
+	}
+
 	return
 }
 
