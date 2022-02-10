@@ -2,6 +2,7 @@ package chunck
 
 import (
 	_ "embed"
+	"github.com/Tnze/go-mc/nbt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -11,6 +12,19 @@ func TestDecode(t *testing.T) {
 	assert.NoError(t, received.DecodeNBT(exdata))
 	if !t.Failed() {
 		assert.Equal(t, chuncExpected, received)
+	}
+}
+
+func BenchmarkDecodeMy(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		var received Chunck
+		received.DecodeNBT(exdata)
+	}
+}
+func BenchmarkDecodeTnze(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		var c Chunck
+		nbt.Unmarshal(exdata, &c)
 	}
 }
 
