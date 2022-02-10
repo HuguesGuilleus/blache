@@ -16,12 +16,12 @@ type PaletteItem struct {
 }
 
 func (section *Section) decodeNBT(tagType byte, name string, r *reader) error {
-	var err error
 	switch name {
 	case "Y":
 		if tagType != tagByte {
 			return expectedTag(tagByte, tagType)
 		}
+		var err error
 		section.Y, err = r.readByte()
 		if err != nil {
 			return err
@@ -41,7 +41,9 @@ func (section *Section) decodeNBT(tagType byte, name string, r *reader) error {
 
 		section.Palette = make([]PaletteItem, paletteLen, paletteLen)
 		for i := 0; i < paletteLen; i++ {
-			r.readCompound(section.Palette[i].decodeNBT)
+			if err := r.readCompound(section.Palette[i].decodeNBT); err != nil {
+				return err
+			}
 		}
 
 	case "BlockStates":
