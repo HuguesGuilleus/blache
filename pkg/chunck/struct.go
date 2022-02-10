@@ -90,7 +90,7 @@ func (c *Chunck) decodeNBT(r *reader) error {
 			}
 			c.Level.Sections = make([]Section, listLen, listLen)
 			for i := 0; i < listLen; i++ {
-				if err := c.Level.Sections[i].nbt(r); err != nil {
+				if err := r.readCompound(c.Level.Sections[i].decodeNBT); err != nil {
 					return err
 				}
 			}
