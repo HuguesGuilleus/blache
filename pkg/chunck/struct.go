@@ -19,129 +19,72 @@ type Chunck struct {
 	}
 }
 
-func (c *Chunck) DecodeNBT(data []byte) error {
+func (chunck *Chunck) DecodeNBT(data []byte) error {
 	r := reader(data)
-	for {
-		tagType, name, err := r.readTagMeta()
-		if err != nil {
-			return fmt.Errorf("Decode Chunck fail: %w", err)
-		} else if tagType == tagEnd {
-			break
-		}
-		switch name {
-		case "":
-			if tagType != tagCompound {
-				return expectedTagCompound(tagType)
-			}
-			for {
-				tagType, name, err := r.readTagMeta()
-				if err != nil {
-					return fmt.Errorf("Decode Chunck fail: %w", err)
-				} else if tagType == tagEnd {
-					break
-				}
-
-				switch name {
-				case "Level":
-
-					if tagType != tagCompound {
-						return expectedTagCompound(tagType)
-					}
-					return c.decodeNBT(&r)
-				default:
-					if err := r.skip(tagType); err != nil {
-						return fmt.Errorf("Decode Chunck.%q: %w", name, err)
-					}
-				}
-			}
-		default:
-			if err := r.skip(tagType); err != nil {
-				return fmt.Errorf("Decode Chunck.%q: %w", name, err)
-			}
-		}
-	}
-
-	// The draw function can use a empty chunck.
-	return nil
+	return r.readTree(chunck.decodeChunck)
 }
 
-func (c *Chunck) decodeNBT(r *reader) error {
-	for {
-		tagType, name, err := r.readTagMeta()
-		if err != nil {
-			return fmt.Errorf("Read Chunck.Level fail: %w", err)
-		} else if tagType == tagEnd {
-			break
+func (chunck *Chunck) decodeChunck(tagType byte, name string, r *reader) error {
+	switch name {
+	case "Level":
+		if tagType != tagCompound {
+			return expectedTagCompound(tagType)
 		}
-
-		switch name {
-		case "Sections":
-			if tagType != tagList {
-				return expectedTagList(tagType)
-			}
-			if sectionType, err := r.readByte(); err != nil {
-				return err
-			} else if sectionType != tagCompound {
-				return fmt.Errorf("Read Chunck.Level.Sections: %w", expectedTagCompound(tagType))
-			}
-			listLen, err := r.readLen()
-			if err != nil {
-				return err
-			}
-			c.Level.Sections = make([]Section, listLen, listLen)
-			for i := 0; i < listLen; i++ {
-				if err := r.readCompound(c.Level.Sections[i].decodeNBT); err != nil {
-					return err
-				}
-			}
-
-		case "Structures":
-			if tagType != tagCompound {
-				return fmt.Errorf("Decode Chunck.Level.Structures: %w", expectedTagCompound(tagType))
-			}
-			if err := c.nbtLevelStructure(r); err != nil {
-				return fmt.Errorf("Decode Chunck.Level.Structures: %w", err)
-			}
-
-		default:
-			if err := r.skip(tagType); err != nil {
-				return err
-			}
+		if err := r.readCompound(chunck.decodeLevel); err != nil {
+			return nil
 		}
+		return exitWalk
+	default:
+		return skipNode
 	}
-	return nil
 }
 
-func (c *Chunck) nbtLevelStructure(r *reader) error {
-	for {
-		tagType, name, err := r.readTagMeta()
+func (chunck *Chunck) decodeLevel(tagType byte, name string, r *reader) error {
+	switch name {
+	case "Sections":
+		if tagType != tagList {
+			return expectedTag(tagList, tagType)
+		}
+		sectionType, listLen, err := r.readListMeta()
 		if err != nil {
 			return err
-		} else if tagType == tagEnd {
-			break
+		} else if sectionType == tagEnd {
+			return nil
+		} else if sectionType != tagCompound {
+			return fmt.Errorf("list item type %w", expectedTag(tagCompound, sectionType))
+		}
+		chunck.Level.Sections = make([]Section, listLen, listLen)
+		for i := range chunck.Level.Sections {
+			if err := r.readCompound(chunck.Level.Sections[i].decodeNBT); err != nil {
+				return err
+			}
 		}
 
-		switch name {
-		case "Starts":
-			if tagType != tagCompound {
-				return fmt.Errorf("Read Chunck.Level.Structures[].Strats: %w", expectedTagCompound(tagType))
-			}
-			c.Level.Structures.Starts = make(map[string]struct{})
-			for {
-				tagType, name, err := r.readTagMeta()
-				if err != nil {
-					return err
-				} else if tagType == tagEnd {
-					break
-				}
-				c.Level.Structures.Starts[name] = struct{}{}
-				return r.skip(tagType)
-			}
-		default:
-			if err := r.skip(tagType); err != nil {
-				return fmt.Errorf("Skip Level.Structure.%q fail: %w", name, err)
-			}
+	case "Structures":
+		if tagType != tagCompound {
+			return expectedTag(tagCompound, tagType)
+		} else if err := r.readCompound(chunck.nbtLevelStructure); err != nil {
+			return err
 		}
+
+	default:
+		return skipNode
 	}
 	return nil
+}
+
+func (c *Chunck) nbtLevelStructure(tagType byte, name string, r *reader) error {
+	switch name {
+	case "Starts":
+		if tagType != tagCompound {
+			return expectedTag(tagCompound, tagType)
+		}
+		c.Level.Structures.Starts = make(map[string]struct{})
+		return r.readCompound(func(_ byte, name string, _ *reader) error {
+			c.Level.Structures.Starts[name] = struct{}{}
+			return skipNode
+		})
+	default:
+		return skipNode
+	}
 }

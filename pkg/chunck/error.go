@@ -20,7 +20,7 @@ func expectedTagType(expected string, received byte) error {
 
 // Create a fmt error
 func expectedTag(expected, received byte) error {
-	return fmt.Errorf("Expected a %s but found: %s", tag2string(expected), tag2string(received))
+	return fmt.Errorf("Expected a %s but found %s", tag2string(expected), tag2string(received))
 }
 
 // Return the tag in string with the based format.

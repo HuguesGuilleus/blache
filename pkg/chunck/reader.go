@@ -30,11 +30,28 @@ const (
 	tagBigger = tagInt64Array
 )
 
-// A fake error used to ask to skip this node.
-var skipNode = errors.New("Skip this node")
+var (
+	// Fake error used to ask to skip this node.
+	skipNode = errors.New("Skip this node")
+	// Fake error to exit the decoding.
+	exitWalk = errors.New("Exit node walk")
+)
 
 // The reader
 type reader []byte
+
+// Read a NBT tree.
+func (r *reader) readTree(saver func(tagType byte, name string, r *reader) error) error {
+	return r.readCompound(func(tagType byte, _ string, r *reader) error {
+		if tagType != tagCompound {
+			return expectedTagCompound(tagType)
+		}
+		if err := r.readCompound(saver); err != nil {
+			return err
+		}
+		return exitWalk
+	})
+}
 
 // Read a NBT Compound, and to each
 func (r *reader) readCompound(saver func(tagType byte, name string, r *reader) error) error {
@@ -56,12 +73,14 @@ func (r *reader) readCompound(saver func(tagType byte, name string, r *reader) e
 		switch err := saver(tagType, name, r); err {
 		case nil:
 			// ok
+		case exitWalk:
+			return nil
 		case skipNode:
 			if err := r.skip(tagType); err != nil {
 				return fmt.Errorf("Skip %q: %w", name, err)
 			}
 		default:
-			return fmt.Errorf("Decode %q %w", name, err)
+			return fmt.Errorf("Decode %q: %w", name, err)
 		}
 	}
 }
@@ -133,20 +152,6 @@ func (r *reader) skipBytes(skipBytes int) {
 	} else {
 		*r = nil
 	}
-}
-
-// Return an item in a NBT Componant (like a go map). If no
-func (r *reader) readTagMeta() (tagType byte, name string, err error) {
-	tagType, err = r.readByte()
-	if err != nil {
-		return 0, "", fmt.Errorf("Read tag type: %w", err)
-	} else if tagType > tagBigger {
-		return 0, "", fmt.Errorf("Read invalid tag type: %d", tagType)
-	} else if tagType == tagEnd {
-		return 0, "", nil
-	}
-	name, err = r.readString()
-	return
 }
 
 func (r *reader) readListMeta() (tagType byte, listLen int, err error) {
