@@ -1,4 +1,5 @@
 const REGION_SIZE: number = 16 * 32;
+
 const blackImage = function(): ImageData {
 	const raw = new Uint8ClampedArray(REGION_SIZE * REGION_SIZE * 4);
 	for (let i: number = 0; i < raw.length; i += 4) {
@@ -277,7 +278,19 @@ class Viewer {
 			this.canvas_ctx.putImageData(surface, xr, zr, 0, 0, S, S);
 		}
 
-		if (this.enableFrontier) {
+		if (this.enableFrontier && S > 32) {
+			if(S > 512) {
+				this.canvas_ctx.strokeStyle = 'red';
+				this.canvas_ctx.strokeStyle = 'yellow';
+				this.canvas_ctx.strokeStyle = 'grey';
+				this.canvas_ctx.lineWidth = 1;
+
+				for (let i = 1; i < 32; i++) {
+					this.canvas_ctx.stroke(new Path2D(`M${xr + S/32*i} ${zr} v${S}`));
+					this.canvas_ctx.stroke(new Path2D(`M${xr} ${zr + S/32*i} h${S}`));
+				}
+			}
+
 			this.canvas_ctx.strokeStyle = 'orange';
 			this.canvas_ctx.lineWidth = 2.5;
 			this.canvas_ctx.stroke(new Path2D(`M${xr} ${zr} v${S} h${S} v${-S} z`));

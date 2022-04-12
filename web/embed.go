@@ -11,7 +11,7 @@ import _ "embed"
 //go:embed index.html
 var html []byte
 
-// File app.Js, builed by the typescript
+// File app.Js, builed by typescript
 //go:embed app.js
 //go:generate tsc -p ts
 var js []byte
@@ -20,6 +20,7 @@ var js []byte
 //go:embed style.css
 var style []byte
 
+// All static web files, to put at root of the output directory.
 var List = []struct {
 	Name string
 	Data []byte
