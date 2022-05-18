@@ -18,9 +18,6 @@ type Option struct {
 	Input fs.FS
 	// The output. Must be defined.
 	Output Creator
-
-	// Disable bar print
-	NoBar bool
 }
 
 // Error occure when do not found file in the Option.Input

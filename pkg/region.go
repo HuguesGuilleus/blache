@@ -9,9 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
+	"image/png"
 )
-
-const regionNumberOfImage = 3
 
 type region struct {
 	X, Z    int
@@ -29,8 +28,6 @@ type structure struct {
 	Z    int    `json:"z"`
 	Name string `json:"name"`
 }
-
-/* PARSING */
 
 func parseRegion(g *generator, x, z int, data []byte) {
 	defer func() {
@@ -56,7 +53,6 @@ func parseRegion(g *generator, x, z int, data []byte) {
 
 	for x := 0; x < 32; x++ {
 		for z := 0; z < 32; z++ {
-			r.g.bar.Increment()
 			// Get the chunk data position into data.
 			offset := 4 * (x + z*32)
 			if bytesToInt(data[offset:offset+4]) == 0 {
@@ -74,8 +70,6 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		}
 	}
 
-	r.g.bar.Increment()
-
 	name := fmt.Sprintf("%d.%d.png", r.X, r.Z)
 	r.g.saveImage("biome", name, &r.biome)
 	r.g.saveImage("bloc", name, &r.bloc)
@@ -85,10 +79,8 @@ func parseRegion(g *generator, x, z int, data []byte) {
 
 // Save the list of the structure in JSON.
 func (r *region) saveStructs() {
-	var j []byte
-	if len(r.structs) == 0 {
-		j = []byte("[]")
-	} else {
+	j := []byte("[]")
+	if len(r.structs) > 0 {
 		var err error
 		j, err = json.Marshal(r.structs)
 		if err != nil {
@@ -102,10 +94,22 @@ func (r *region) saveStructs() {
 	}
 }
 
+// Encode the Image in PNG and store it.
+func (g *generator) saveImage(kind, name string, img *regionImage) {
+	img.processPalette()
+
+	buff := bytes.Buffer{}
+	png.Encode(&buff, img)
+
+	if err := g.Output.Create(kind, name, buff.Bytes()); err != nil {
+		g.addError(fmt.Errorf("Fail to save image: %w", err))
+	}
+}
+
 // Convert a slice of bytes to int, with bigendian.
 func bytesToInt(tab []byte) (n int) {
 	for _, b := range tab {
-		n = n<<8 + int(b)
+		n = n<<8 | int(b)
 	}
 	return n
 }

@@ -22,7 +22,6 @@ func main() {
 		Output: &out,
 	}
 
-	flag.BoolVar(&opt.NoBar, "bar", false, "Disable progress bar")
 	flag.Var(&out, "out", "The output Directory")
 	version := flag.Bool("version", false, "Print the version and exit")
 	flag.Parse()
