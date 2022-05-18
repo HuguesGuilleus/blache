@@ -1,5 +1,4 @@
 // BSD 3-Clause License in LICENSE file at the project root.
-// Copyright (c) 2021, Hugues GUILLEUS
 // All rights reserved.
 
 package blache
@@ -9,8 +8,6 @@ import (
 	"fmt"
 	"github.com/HuguesGuilleus/blache/web"
 	"io"
-	"io/fs"
-	"path"
 	"sort"
 	"sync"
 	"time"
@@ -77,37 +74,6 @@ func (g *generator) writeAssets() error {
 	}
 
 	return nil
-}
-
-func (g *generator) readRegion(root string, entry fs.DirEntry) {
-	x, z := 0, 0
-	name := path.Join(root, entry.Name())
-	if _, err := fmt.Sscanf(entry.Name(), "r.%d.%d.mca", &x, &z); err != nil {
-		g.addError(fmt.Errorf("Error when read X end Z from file name %q: %w", name, err))
-		return
-	}
-
-	outputInfo, _ := fs.Stat(g.Output, fmt.Sprintf("structs/%d.%d.json", x, z))
-	inputInfo, _ := entry.Info()
-	if outputInfo != nil && inputInfo != nil && outputInfo.ModTime().After(inputInfo.ModTime()) {
-		fmt.Fprintf(g.LogOutput, "cache region (%d,%d)\n", x, z)
-		g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
-		return
-	}
-
-	data, err := fs.ReadFile(g.Input, name)
-	if err != nil {
-		g.addError(fmt.Errorf("Fail to read %q: %w", name, err))
-		return
-	} else if len(data) < 32*32*4 {
-		g.addError(fmt.Errorf("The file for region %d,%d is too short", x, z))
-		return
-	}
-
-	g.wg.Add(1)
-	g.regionTotal++
-	g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
-	go parseRegion(g, x, z, data)
 }
 
 // Save all the processed region coordonates into regions.json

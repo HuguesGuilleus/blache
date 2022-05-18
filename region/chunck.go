@@ -1,45 +1,42 @@
 // BSD 3-Clause License in LICENSE file at the project root.
-// Copyright (c) 2021, Hugues GUILLEUS
 // All rights reserved.
 
-package blache
+package region
 
 import (
 	"bytes"
 	"compress/zlib"
-	"github.com/HuguesGuilleus/blache/pkg/chunck"
-	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
+	"github.com/HuguesGuilleus/blache/region/chunck"
+	"github.com/HuguesGuilleus/blache/region/minecraftColor"
 	"io"
 	"sort"
 )
 
-func drawChunck(r *region, raw []byte, x, z int) error {
+func parseChunck(r *Region, x, z int, raw []byte, buff *bytes.Buffer) error {
 	// Decompress data and parse minecraft data
 	c := chunck.Chunck{}
-	r.buff.Reset()
+	buff.Reset()
 	if zlibReader, err := zlib.NewReader(bytes.NewReader(raw)); err != nil {
 		return err
-	} else if _, err := io.Copy(&r.buff, zlibReader); err != nil {
+	} else if _, err := io.Copy(buff, zlibReader); err != nil {
 		return err
-	} else if err := c.DecodeNBT(r.buff.Bytes()); err != nil {
+	} else if err := c.DecodeNBT(buff.Bytes()); err != nil {
 		return err
 	}
 
-	// Save structure
 	for n := range c.Level.Structures.Starts {
-		r.structs = append(r.structs, structure{
+		r.Structures = append(r.Structures, Structure{
 			X:    x,
 			Z:    z,
 			Name: n,
 		})
 	}
 
-	// Draw biome tile.
-	if err := r.biome.drawBiome(x, z, c.Level.Biomes); err != nil {
+	if err := drawBiome(r.Biome.chunck(x, z), c.Level.Biomes); err != nil {
 		return err
 	}
 
-	drawBlockAndHeight(&c, r.bloc.chunck(x, z), r.height.chunck(x, z))
+	drawBlockAndHeight(&c, r.Bloc.chunck(x, z), r.Height.chunck(x, z))
 
 	return nil
 }

@@ -1,17 +1,14 @@
 // BSD 3-Clause License in LICENSE file at the project root.
-// Copyright (c) 2021, Hugues GUILLEUS
 // All rights reserved.
 
-package blache
+package region
 
 import (
 	"fmt"
-	"github.com/HuguesGuilleus/blache/pkg/minecraftColor"
+	"github.com/HuguesGuilleus/blache/region/minecraftColor"
 )
 
-// Draw the image
-func (img *regionImage) drawBiome(chunckX, chunckZ int, biome interface{}) error {
-	chunck := img.chunck(chunckX, chunckZ)
+func drawBiome(chunck []uint8, biome interface{}) error {
 	switch biome := biome.(type) {
 	case nil:
 		fillBiomChunck(chunck)

@@ -1,5 +1,4 @@
 // BSD 3-Clause License in LICENSE file at the project root.
-// Copyright (c) 2020, Hugues GUILLEUS
 // All rights reserved.
 
 package main
@@ -9,7 +8,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
-	"github.com/HuguesGuilleus/blache/pkg"
+	"github.com/HuguesGuilleus/blache"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -75,9 +74,6 @@ func init() {
 	}
 }
 
-//go:embed LICENSE
-var license string
-
 func printVersion() {
 	if info, _ := debug.ReadBuildInfo(); info != nil {
 		fmt.Println("Blache", info.Main.Version)
@@ -86,5 +82,5 @@ func printVersion() {
 		fmt.Println("Blache")
 	}
 	fmt.Println()
-	fmt.Println(license)
+	fmt.Println(blache.License)
 }

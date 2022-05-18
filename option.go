@@ -1,10 +1,10 @@
 // BSD 3-Clause License in LICENSE file at the project root.
-// Copyright (c) 2020, Hugues GUILLEUS
 // All rights reserved.
 
 package blache
 
 import (
+	_ "embed"
 	"errors"
 	"io"
 	"io/fs"
@@ -12,6 +12,10 @@ import (
 	"path/filepath"
 	"sync"
 )
+
+// Use it for display license.
+//go:embed LICENSE
+var License string
 
 // All the options for one generation
 type Option struct {
