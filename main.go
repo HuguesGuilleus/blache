@@ -19,7 +19,7 @@ import (
 func main() {
 	out := blache.NewOsCreater("public")
 	opt := blache.Option{
-		Out: &out,
+		Output: &out,
 		Error: func(err error) {
 			fmt.Fprintf(os.Stderr, "\033[1G\033[K%v\n", err)
 		},
@@ -45,9 +45,9 @@ func main() {
 			fmt.Fprintf(os.Stderr, "\033[1G\033[KFail to open zip file: %q: %v\n", a, err)
 			os.Exit(1)
 		}
-		opt.In = r
+		opt.Input = r
 	} else {
-		opt.In = os.DirFS(a)
+		opt.Input = os.DirFS(a)
 	}
 
 	defer func(before time.Time) {

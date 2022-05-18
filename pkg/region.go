@@ -34,19 +34,16 @@ type structure struct {
 
 func parseRegion(g *generator, x, z int, data []byte) {
 	defer func() {
-		switch err := recover(); err.(type) {
-		case nil:
-		case error:
-			g.Error(fmt.Errorf("Panic error (region: %d,%d): %w", x, z, err))
-		default:
-			g.Error(fmt.Errorf("Panic error (region: %d,%d): %v", x, z, err))
+		if err := recover(); err != nil {
+			if err, ok := err.(error); ok {
+				g.Error(fmt.Errorf("Panic error (region: %d,%d): %w", x, z, err))
+			} else {
+				g.Error(fmt.Errorf("Panic error (region: %d,%d): %v", x, z, err))
+			}
 		}
 	}()
 
 	defer g.wg.Done()
-
-	g.cpu.Lock()
-	defer g.cpu.Unlock()
 
 	r := region{
 		g:      g,
@@ -100,7 +97,7 @@ func (r *region) saveStructs() {
 		}
 	}
 	n := fmt.Sprintf("%d.%d.json", r.X, r.Z)
-	if err := r.g.Out.Create("structs", n, j); err != nil {
+	if err := r.g.Output.Create("structs", n, j); err != nil {
 		r.g.Error(fmt.Errorf("Write list of structure file %q fail: %w", n, err))
 	}
 }

@@ -16,10 +16,11 @@ var NotMapFiles = errors.New("Not found the map files")
 
 // All the options for one generation
 type Option struct {
-	// The regions sources.
-	In fs.FS
+	// The regions sources. Must be defined.
+	Input fs.FS
 	// The output. Must be defined.
-	Out Creator
+	Output Creator
+
 	// Disable bar print
 	NoBar bool
 	// The max number of CPU who can be used.
@@ -31,7 +32,7 @@ type Option struct {
 
 func (option *Option) getFiles() (root string, files []fs.DirEntry, err error) {
 	for _, root = range [...]string{"world/region", "region", "."} {
-		files, err = fs.ReadDir(option.In, root)
+		files, err = fs.ReadDir(option.Input, root)
 		if err == nil {
 			return
 		}

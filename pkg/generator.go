@@ -64,7 +64,7 @@ func Generate(option Option) {
 		}
 
 		n := path.Join(root, f.Name())
-		data, err := fs.ReadFile(option.In, n)
+		data, err := fs.ReadFile(option.Input, n)
 		if err != nil {
 			g.fileFail("Fail to read %q: %w", n, err)
 			continue
@@ -82,13 +82,13 @@ func Generate(option Option) {
 // Write directory and assets.
 func (g *generator) initOutput() error {
 	for _, d := range [...]string{"bloc", "biome", "height", "structs"} {
-		if err := g.Out.MkdirAll(d); err != nil {
+		if err := g.Output.MkdirAll(d); err != nil {
 			return fmt.Errorf("Write directory %q fail: %w", d, err)
 		}
 	}
 
 	for _, f := range web.List {
-		if err := g.Out.Create("", f.Name, f.Data); err != nil {
+		if err := g.Output.Create("", f.Name, f.Data); err != nil {
 			return fmt.Errorf("Fail to write web file %q: %v", f.Name, err)
 		}
 	}
@@ -96,7 +96,7 @@ func (g *generator) initOutput() error {
 	return nil
 }
 
-// When fail to read a file, Send an error to g.Error wiith format and ars if
+// When fail to read a file, Send an error to g.Error with format and args if
 // format is not empty.
 func (g *generator) fileFail(format string, args ...interface{}) {
 	g.bar.Add(32*32 + 1)
@@ -115,7 +115,7 @@ func (g *generator) saveRegionsList() {
 		g.Error(fmt.Errorf("Generated JSON regions fail: %w", err))
 		return
 	}
-	if err := g.Out.Create("", "regions.json", data); err != nil {
+	if err := g.Output.Create("", "regions.json", data); err != nil {
 		g.Error(fmt.Errorf("Write regions.json fail: %w", err))
 	}
 }
@@ -129,7 +129,7 @@ func (g *generator) saveImage(kind, name string, img *regionImage) {
 	buff := bytes.Buffer{}
 	png.Encode(&buff, img)
 
-	if err := g.Out.Create(kind, name, buff.Bytes()); err != nil {
+	if err := g.Output.Create(kind, name, buff.Bytes()); err != nil {
 		g.Error(fmt.Errorf("Fail to save image: %v", err))
 	}
 }
