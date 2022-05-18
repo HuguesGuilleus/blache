@@ -5,8 +5,10 @@
 package blache
 
 import (
+	"bytes"
 	"image"
 	"image/color"
+	"image/png"
 )
 
 // A palletted image for region tile, of any type (biome, blocks, height).
@@ -40,11 +42,17 @@ func (img *regionImage) chunck(chunckX, chunckZ int) []uint8 {
 	return img.pixels[chunckZ*32+chunckX][:]
 }
 
+// Return the PNG encoded image.
+func (img *regionImage) BytesPNG() []byte {
+	img.processPalette()
+	buff := bytes.Buffer{}
+	png.Encode(&buff, img)
+	return buff.Bytes()
+}
+
 // After draw on all chunck, select only used color. Do not used draw after.
 func (img *regionImage) processPalette() {
-	// We use arrays with 256 (the pallette can be smaller) to avoid allocation.
-
-	// Seach used color
+	// Search and count used color
 	var usedColors [256]bool
 	for _, chunck := range img.pixels {
 		for _, c := range chunck {
@@ -59,23 +67,22 @@ func (img *regionImage) processPalette() {
 	}
 
 	// Create the new palette and corellation table.
-	palette := make(color.Palette, nbUsedColor)
-	var colorCorrelation [256]uint8
-	var fillingIndex = uint8(0)
-	for colorIndex := 0; colorIndex < len(img.palette); colorIndex++ {
-		if !usedColors[colorIndex] {
-			continue
+	newPalette := make(color.Palette, nbUsedColor)
+	colorCorrelation := [256]uint8{}
+	fillingIndex := uint8(0)
+	for colorIndex, used := range usedColors {
+		if used {
+			newPalette[fillingIndex] = img.palette[colorIndex]
+			colorCorrelation[colorIndex] = fillingIndex
+			fillingIndex++
 		}
-		palette[fillingIndex] = img.palette[colorIndex]
-		colorCorrelation[colorIndex] = fillingIndex
-		fillingIndex++
 	}
+	img.palette = newPalette
 
+	// Apply the new pallette.
 	for i := range img.pixels {
 		for j, oldColor := range img.pixels[i] {
 			img.pixels[i][j] = colorCorrelation[oldColor]
 		}
 	}
-
-	img.palette = palette
 }

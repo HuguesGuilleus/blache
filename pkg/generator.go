@@ -73,9 +73,7 @@ func (g *generator) writeAssets() error {
 	}
 
 	for _, f := range web.List {
-		if err := g.Output.Create("", f.Name, f.Data); err != nil {
-			return fmt.Errorf("Fail to write web file %q: %v", f.Name, err)
-		}
+		g.saveFile("", f.Name, f.Data)
 	}
 
 	return nil
@@ -120,8 +118,13 @@ func (g *generator) saveRegionsList() {
 		g.addError(fmt.Errorf("Generated JSON regions fail: %w", err))
 		return
 	}
-	if err := g.Output.Create("", "regions.json", data); err != nil {
-		g.addError(fmt.Errorf("Write regions.json fail: %w", err))
+	g.saveFile("", "regions.json", data)
+}
+
+// Save the file and manage error.
+func (g *generator) saveFile(dir, name string, data []byte) {
+	if err := g.Output.Create(dir, name, data); err != nil {
+		g.addError(fmt.Errorf("Fail to save: %s/%s: %w", dir, name, err))
 	}
 }
 
