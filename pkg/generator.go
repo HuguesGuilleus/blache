@@ -46,7 +46,7 @@ func Generate(option Option) []error {
 		fmt.Println("duration:", time.Since(before).Round(time.Millisecond))
 	}(time.Now())
 
-	if err := g.initOutput(); err != nil {
+	if err := g.writeAssets(); err != nil {
 		return []error{err}
 	}
 
@@ -56,26 +56,7 @@ func Generate(option Option) []error {
 	}
 
 	for _, f := range files {
-		x, z := 0, 0
-		if _, err := fmt.Sscanf(f.Name(), "r.%d.%d.mca", &x, &z); err != nil {
-			g.addError(fmt.Errorf("Error when read X end Z from file name %q: %w", f.Name(), err))
-			continue
-		}
-
-		n := path.Join(root, f.Name())
-		data, err := fs.ReadFile(option.Input, n)
-		if err != nil {
-			g.addError(fmt.Errorf("Fail to read %q: %w", n, err))
-			continue
-		} else if len(data) < 32*32*4 {
-			g.addError(fmt.Errorf("The file for region %d,%d is too short", x, z))
-			continue
-		}
-
-		g.wg.Add(1)
-		g.RegionTotal++
-		g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
-		go parseRegion(&g, x, z, data)
+		g.readRegion(root, f)
 	}
 	g.saveRegionsList()
 	g.wg.Wait()
@@ -84,7 +65,7 @@ func Generate(option Option) []error {
 }
 
 // Write directory and assets.
-func (g *generator) initOutput() error {
+func (g *generator) writeAssets() error {
 	for _, d := range [...]string{"bloc", "biome", "height", "structs"} {
 		if err := g.Output.MkdirAll(d); err != nil {
 			return fmt.Errorf("Write directory %q fail: %w", d, err)
@@ -98,6 +79,37 @@ func (g *generator) initOutput() error {
 	}
 
 	return nil
+}
+
+func (g *generator) readRegion(root string, entry fs.DirEntry) {
+	x, z := 0, 0
+	name := path.Join(root, entry.Name())
+	if _, err := fmt.Sscanf(entry.Name(), "r.%d.%d.mca", &x, &z); err != nil {
+		g.addError(fmt.Errorf("Error when read X end Z from file name %q: %w", name, err))
+		return
+	}
+
+	outputInfo, _ := fs.Stat(g.Output, fmt.Sprintf("structs/%d.%d.json", x, z))
+	inputInfo, _ := entry.Info()
+	if outputInfo != nil && inputInfo != nil && outputInfo.ModTime().After(inputInfo.ModTime()) {
+		fmt.Fprintf(g.LogOutput, "cache region (%d,%d)\n", x, z)
+		g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
+		return
+	}
+
+	data, err := fs.ReadFile(g.Input, name)
+	if err != nil {
+		g.addError(fmt.Errorf("Fail to read %q: %w", name, err))
+		return
+	} else if len(data) < 32*32*4 {
+		g.addError(fmt.Errorf("The file for region %d,%d is too short", x, z))
+		return
+	}
+
+	g.wg.Add(1)
+	g.RegionTotal++
+	g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
+	go parseRegion(g, x, z, data)
 }
 
 // Save all the processed region coordonates into regions.json
