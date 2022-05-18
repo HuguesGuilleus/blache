@@ -26,7 +26,6 @@ func main() {
 	}
 
 	flag.BoolVar(&opt.NoBar, "bar", false, "Disable progress bar")
-	flag.IntVar(&opt.CPU, "cpu", 0, "The number of core used, zero is for all core.")
 	flag.Var(&out, "out", "The output Directory")
 	version := flag.Bool("version", false, "Print the version and exit")
 	flag.Parse()

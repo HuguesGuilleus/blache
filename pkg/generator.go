@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/HuguesGuilleus/blache/pkg/cpumutex"
 	"github.com/HuguesGuilleus/blache/web"
 	"image/png"
 	"io/fs"
@@ -19,7 +18,6 @@ import (
 
 type generator struct {
 	Option
-	cpu cpumutex.M
 	wg  sync.WaitGroup
 	bar bar
 	// All the region coords.
@@ -31,7 +29,6 @@ func Generate(option Option) {
 		option.Error = func(error) {}
 	}
 	g := generator{Option: option}
-	g.cpu.Init(option.CPU)
 
 	if err := g.initOutput(); err != nil {
 		g.Error(err)
@@ -52,9 +49,6 @@ func Generate(option Option) {
 	g.bar.Total += (32*32 + 1 + regionNumberOfImage) * int64(len(files))
 	g.wg.Add(len(files))
 	defer g.wg.Wait()
-
-	g.cpu.Lock()
-	defer g.cpu.Unlock()
 
 	for _, f := range files {
 		x, z := 0, 0

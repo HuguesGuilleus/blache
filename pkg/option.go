@@ -12,8 +12,6 @@ import (
 	"sync"
 )
 
-var NotMapFiles = errors.New("Not found the map files")
-
 // All the options for one generation
 type Option struct {
 	// The regions sources. Must be defined.
@@ -23,12 +21,13 @@ type Option struct {
 
 	// Disable bar print
 	NoBar bool
-	// The max number of CPU who can be used.
-	// If less 0, it will the the number of CPU.
-	CPU int
+
 	// Log the error. Is not set, never output.
 	Error func(error)
 }
+
+// Error occure when do not found file in the Option.Input
+var NotMapFiles = errors.New("Not found the map files")
 
 func (option *Option) getFiles() (root string, files []fs.DirEntry, err error) {
 	for _, root = range [...]string{"world/region", "region", "."} {
