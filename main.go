@@ -20,9 +20,6 @@ func main() {
 	out := blache.NewOsCreater("public")
 	opt := blache.Option{
 		Output: &out,
-		Error: func(err error) {
-			fmt.Fprintf(os.Stderr, "\033[1G\033[K%v\n", err)
-		},
 	}
 
 	flag.BoolVar(&opt.NoBar, "bar", false, "Disable progress bar")
@@ -52,7 +49,14 @@ func main() {
 	defer func(before time.Time) {
 		fmt.Println("[DURATION]", time.Since(before).Round(time.Millisecond*10))
 	}(time.Now())
-	blache.Generate(opt)
+
+	errors := blache.Generate(opt)
+	for _, err := range errors {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	if len(errors) > 0 {
+		os.Exit(1)
+	}
 }
 
 func init() {

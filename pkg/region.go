@@ -36,9 +36,9 @@ func parseRegion(g *generator, x, z int, data []byte) {
 	defer func() {
 		if err := recover(); err != nil {
 			if err, ok := err.(error); ok {
-				g.Error(fmt.Errorf("Panic error (region: %d,%d): %w", x, z, err))
+				g.addError(fmt.Errorf("Panic error (region: %d,%d): %w", x, z, err))
 			} else {
-				g.Error(fmt.Errorf("Panic error (region: %d,%d): %v", x, z, err))
+				g.addError(fmt.Errorf("Panic error (region: %d,%d): %v", x, z, err))
 			}
 		}
 	}()
@@ -65,11 +65,11 @@ func parseRegion(g *generator, x, z int, data []byte) {
 			addr := 4096 * bytesToInt(data[offset:offset+3])
 			l := bytesToInt(data[addr : addr+4])
 			if typeOfCompress := data[addr+4]; typeOfCompress != 2 {
-				g.Error(fmt.Errorf("Error region:(%d,%d) chunck:(%d,%d): Unknown compress, expected 2, found %d", r.X, r.Z, x, z, typeOfCompress))
+				g.addError(fmt.Errorf("Error region:(%d,%d) chunck:(%d,%d): Unknown compress, expected 2, found %d", r.X, r.Z, x, z, typeOfCompress))
 				continue
 			}
 			if err := drawChunck(&r, data[addr+5:addr+4+l], x, z); err != nil {
-				g.Error(fmt.Errorf("Error region:(%d,%d) chunck:(%d,%d): %w", r.X, r.Z, x, z, err))
+				g.addError(fmt.Errorf("Error region:(%d,%d) chunck:(%d,%d): %w", r.X, r.Z, x, z, err))
 			}
 		}
 	}
@@ -92,13 +92,13 @@ func (r *region) saveStructs() {
 		var err error
 		j, err = json.Marshal(r.structs)
 		if err != nil {
-			r.g.Error(fmt.Errorf("Chunck (%d,%d), JSON structures list genration fail: %w", r.X, r.Z, err))
+			r.g.addError(fmt.Errorf("Chunck (%d,%d), JSON structures list genration fail: %w", r.X, r.Z, err))
 			return
 		}
 	}
 	n := fmt.Sprintf("%d.%d.json", r.X, r.Z)
 	if err := r.g.Output.Create("structs", n, j); err != nil {
-		r.g.Error(fmt.Errorf("Write list of structure file %q fail: %w", n, err))
+		r.g.addError(fmt.Errorf("Write list of structure file %q fail: %w", n, err))
 	}
 }
 

@@ -22,17 +22,20 @@ type generator struct {
 	bar bar
 	// All the region coords.
 	allRegion []string
+
+	// All errors occure durring generation.
+	errorSlice []error
+	errorMutex sync.Mutex
 }
 
-func Generate(option Option) {
-	if option.Error == nil {
-		option.Error = func(error) {}
-	}
+// Read minecraft data file from Option.Input and save image to Option.Output.
+//
+// Multiples errors can occure, so Generate can return multiple errors.
+func Generate(option Option) []error {
 	g := generator{Option: option}
 
 	if err := g.initOutput(); err != nil {
-		g.Error(err)
-		return
+		return []error{err}
 	}
 
 	if !option.NoBar {
@@ -42,13 +45,11 @@ func Generate(option Option) {
 
 	root, files, err := g.getFiles()
 	if err != nil {
-		option.Error(fmt.Errorf("Read directory fail: %w", err))
-		return
+		return []error{fmt.Errorf("Read directory fail: %w", err)}
 	}
 
 	g.bar.Total += (32*32 + 1 + regionNumberOfImage) * int64(len(files))
 	g.wg.Add(len(files))
-	defer g.wg.Wait()
 
 	for _, f := range files {
 		x, z := 0, 0
@@ -63,7 +64,7 @@ func Generate(option Option) {
 			g.fileFail("Fail to read %q: %w", n, err)
 			continue
 		} else if len(data) < 32*32*4 {
-			g.fileFail("")
+			g.fileFail("The file for region %d,%d is too short", x, z)
 			continue
 		}
 
@@ -71,6 +72,9 @@ func Generate(option Option) {
 		go parseRegion(&g, x, z, data)
 	}
 	g.saveRegionsList()
+	g.wg.Wait()
+
+	return g.errorSlice
 }
 
 // Write directory and assets.
@@ -97,7 +101,7 @@ func (g *generator) fileFail(format string, args ...interface{}) {
 	g.wg.Done()
 
 	if format != "" {
-		g.Error(fmt.Errorf(format, args...))
+		g.addError(fmt.Errorf(format, args...))
 	}
 }
 
@@ -106,11 +110,11 @@ func (g *generator) saveRegionsList() {
 	sort.Strings(g.allRegion)
 	data, err := json.Marshal(g.allRegion)
 	if err != nil {
-		g.Error(fmt.Errorf("Generated JSON regions fail: %w", err))
+		g.addError(fmt.Errorf("Generated JSON regions fail: %w", err))
 		return
 	}
 	if err := g.Output.Create("", "regions.json", data); err != nil {
-		g.Error(fmt.Errorf("Write regions.json fail: %w", err))
+		g.addError(fmt.Errorf("Write regions.json fail: %w", err))
 	}
 }
 
@@ -124,6 +128,13 @@ func (g *generator) saveImage(kind, name string, img *regionImage) {
 	png.Encode(&buff, img)
 
 	if err := g.Output.Create(kind, name, buff.Bytes()); err != nil {
-		g.Error(fmt.Errorf("Fail to save image: %v", err))
+		g.addError(fmt.Errorf("Fail to save image: %v", err))
 	}
+}
+
+// Add an error in errorSlice. Can be call concurently.
+func (g *generator) addError(err error) {
+	g.errorMutex.Lock()
+	defer g.errorMutex.Unlock()
+	g.errorSlice = append(g.errorSlice, err)
 }

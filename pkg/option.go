@@ -21,9 +21,6 @@ type Option struct {
 
 	// Disable bar print
 	NoBar bool
-
-	// Log the error. Is not set, never output.
-	Error func(error)
 }
 
 // Error occure when do not found file in the Option.Input
