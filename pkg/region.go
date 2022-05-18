@@ -40,7 +40,11 @@ func parseRegion(g *generator, x, z int, data []byte) {
 		}
 	}()
 
-	defer g.wg.Done()
+	defer func() {
+		g.wg.Done()
+		g.RegionDone++
+		fmt.Fprintf(g.LogOutput, "generation: %3d%% region (%d,%d) done\n", g.RegionDone*100/g.RegionTotal, x, z)
+	}()
 
 	r := region{
 		g:      g,

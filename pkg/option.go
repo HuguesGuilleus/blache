@@ -6,6 +6,7 @@ package blache
 
 import (
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -16,8 +17,12 @@ import (
 type Option struct {
 	// The regions sources. Must be defined.
 	Input fs.FS
+
 	// The output. Must be defined.
-	Output Creator
+	Output FSWriter
+
+	// Output for the log, can be unset (will be replaced by io.Discard).
+	LogOutput io.Writer
 }
 
 // Error occure when do not found file in the Option.Input
@@ -35,7 +40,9 @@ func (option *Option) getFiles() (root string, files []fs.DirEntry, err error) {
 }
 
 // Used to write asset web file and generated file.
-type Creator interface {
+type FSWriter interface {
+	// Used to read waypoints.json file if HTTP and detecet updated files.
+	fs.FS
 	// Create a directory.
 	MkdirAll(dir string) error
 	// Create a file into the directory dir (can be empty) with the data.
@@ -44,36 +51,30 @@ type Creator interface {
 }
 
 // A Creator that write directory and file into the operating system into the root.
-type OsCreator struct {
-	Root       string
-	sync.Mutex // used to limit the number of concurent open file.
+type osFSWriter struct {
+	fs.FS
+	Root string
+	// Mutex to limit the number of concurent open writed file.
+	sync.Mutex
 }
 
-// Create an OsCreator with the root.
-func NewOsCreater(root string) OsCreator {
-	return OsCreator{Root: root}
+// Create FSWriter that interact with the os file system.
+func NewOsFSWriter(root string) FSWriter {
+	return &osFSWriter{
+		FS:   os.DirFS(root),
+		Root: root,
+	}
 }
 
 // Create the directory if it doesn't exist.
-func (c *OsCreator) MkdirAll(dir string) error {
+func (c *osFSWriter) MkdirAll(dir string) error {
 	return os.MkdirAll(filepath.Join(c.Root, dir), 0o775)
 }
 
 // Create dir/name with the data.
-func (c *OsCreator) Create(dir, name string, data []byte) error {
+func (c *osFSWriter) Create(dir, name string, data []byte) error {
 	c.Lock()
 	defer c.Unlock()
 
 	return os.WriteFile(filepath.Join(c.Root, dir, name), data, 0664)
-}
-
-// Set Root. Used for the package package.
-func (c *OsCreator) Set(root string) error {
-	c.Root = root
-	return nil
-}
-
-// String return the root.
-func (c *OsCreator) String() string {
-	return c.Root
 }

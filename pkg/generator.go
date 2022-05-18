@@ -8,15 +8,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/HuguesGuilleus/blache/web"
+	"io"
 	"io/fs"
 	"path"
 	"sort"
 	"sync"
+	"time"
 )
 
 type generator struct {
 	Option
 	wg sync.WaitGroup
+
+	// The region already processed.
+	RegionDone int64
+	// Number of all regions not cached.
+	RegionTotal int64
 
 	// All the region coords.
 	allRegion []string
@@ -31,6 +38,13 @@ type generator struct {
 // Multiples errors can occure, so Generate can return multiple errors.
 func Generate(option Option) []error {
 	g := generator{Option: option}
+	if g.LogOutput == nil {
+		g.LogOutput = io.Discard
+	}
+
+	defer func(before time.Time) {
+		fmt.Println("duration:", time.Since(before).Round(time.Millisecond))
+	}(time.Now())
 
 	if err := g.initOutput(); err != nil {
 		return []error{err}
@@ -59,6 +73,7 @@ func Generate(option Option) []error {
 		}
 
 		g.wg.Add(1)
+		g.RegionTotal++
 		g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
 		go parseRegion(&g, x, z, data)
 	}

@@ -13,22 +13,21 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
-	"time"
 )
 
 func main() {
-	out := blache.NewOsCreater("public")
-	opt := blache.Option{
-		Output: &out,
-	}
-
-	flag.Var(&out, "out", "The output Directory")
+	output := flag.String("out", "public", "The output Directory")
 	version := flag.Bool("version", false, "Print the version and exit")
 	flag.Parse()
 
 	if *version {
 		printVersion()
 		return
+	}
+
+	opt := blache.Option{
+		Output:    blache.NewOsFSWriter(*output),
+		LogOutput: os.Stdout,
 	}
 
 	if a := flag.Arg(0); a == "" {
@@ -44,10 +43,6 @@ func main() {
 	} else {
 		opt.Input = os.DirFS(a)
 	}
-
-	defer func(before time.Time) {
-		fmt.Println("[DURATION]", time.Since(before).Round(time.Millisecond*10))
-	}(time.Now())
 
 	errors := blache.Generate(opt)
 	for _, err := range errors {
@@ -66,9 +61,9 @@ func init() {
 		fmt.Println("  - a directory")
 		fmt.Println("  - a zip file")
 		fmt.Println("  Inside all minecraft regions *.mca must in one of this repository:")
-		fmt.Println("  - world/region")
-		fmt.Println("  - region")
-		fmt.Println("  - direcly in the repository")
+		fmt.Println("    - direcly in the indicate repository")
+		fmt.Println("    - region/")
+		fmt.Println("    - world/region/")
 		fmt.Println()
 		fmt.Println("Option:")
 		flag.PrintDefaults()
