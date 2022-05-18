@@ -21,9 +21,9 @@ type generator struct {
 	wg sync.WaitGroup
 
 	// The region already processed.
-	RegionDone int64
+	regionDone int64
 	// Number of all regions not cached.
-	RegionTotal int64
+	regionTotal int64
 
 	// All the region coords.
 	allRegion []string
@@ -54,13 +54,13 @@ func Generate(option Option) []error {
 	if err != nil {
 		return []error{fmt.Errorf("Read directory fail: %w", err)}
 	}
-
 	for _, f := range files {
 		g.readRegion(root, f)
 	}
-	g.saveRegionsList()
-	g.wg.Wait()
 
+	g.saveRegionsList()
+
+	g.wg.Wait()
 	return g.errorSlice
 }
 
@@ -107,7 +107,7 @@ func (g *generator) readRegion(root string, entry fs.DirEntry) {
 	}
 
 	g.wg.Add(1)
-	g.RegionTotal++
+	g.regionTotal++
 	g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
 	go parseRegion(g, x, z, data)
 }
