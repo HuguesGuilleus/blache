@@ -1,32 +1,38 @@
 // BSD 3-Clause License in LICENSE file at the project root.
-// Copyright (c) 2020, Hugues GUILLEUS
 // All rights reserved.
 
-package cpumutex
+package limit
 
-// A mutex for limit the number of parralelism process. Zero value is valid.
-type M struct {
+import (
+	"sync"
+)
+
+// A sync.Locker that can be locked some times. Zero value is valid.
+type locker struct {
 	c chan int
 }
 
-// Init m, if max is less 0, max will be the number of CPU.
-func (m *M) Init(max int) {
+// Create a new limit locker. If max if strict positive, it is the number
+// of possible call to Locker before blocks.
+func New(max int) sync.Locker {
+	l := locker{}
 	if max > 0 {
-		m.c = make(chan int, max)
+		l.c = make(chan int, max)
 		for i := 0; i < max; i++ {
-			m.c <- 0
+			l.c <- 0
 		}
 	}
+	return l
 }
 
-func (m *M) Lock() {
-	if m.c != nil {
-		<-m.c
+func (l locker) Lock() {
+	if l.c != nil {
+		<-l.c
 	}
 }
 
-func (m *M) Unlock() {
-	if m.c != nil {
-		m.c <- 0
+func (l locker) Unlock() {
+	if l.c != nil {
+		l.c <- 0
 	}
 }

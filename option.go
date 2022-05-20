@@ -6,6 +6,7 @@ package blache
 import (
 	_ "embed"
 	"errors"
+	"github.com/HuguesGuilleus/blache/limit"
 	"io"
 	"io/fs"
 	"os"
@@ -58,25 +59,26 @@ type FSWriter interface {
 type osFSWriter struct {
 	fs.FS
 	Root string
-	// Mutex to limit the number of concurent open writed file.
-	sync.Mutex
+	// Locker to limit the number of concurent opened writed file.
+	sync.Locker
 }
 
 // Create FSWriter that interact with the os file system.
 func NewOsFSWriter(root string) FSWriter {
-	return &osFSWriter{
-		FS:   os.DirFS(root),
-		Root: root,
+	return osFSWriter{
+		FS:     os.DirFS(root),
+		Root:   root,
+		Locker: limit.New(120),
 	}
 }
 
 // Create the directory if it doesn't exist.
-func (c *osFSWriter) MkdirAll(dir string) error {
+func (c osFSWriter) MkdirAll(dir string) error {
 	return os.MkdirAll(filepath.Join(c.Root, dir), 0o775)
 }
 
 // Create dir/name with the data.
-func (c *osFSWriter) Create(dir, name string, data []byte) error {
+func (c osFSWriter) Create(dir, name string, data []byte) error {
 	c.Lock()
 	defer c.Unlock()
 
