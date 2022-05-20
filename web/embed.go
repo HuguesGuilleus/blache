@@ -13,7 +13,7 @@ var html []byte
 
 // File app.Js, builed by typescript
 //go:embed app.js
-//go:generate tsc -p ts
+//go:generate go run ts/generate.go
 var js []byte
 
 // File style.css

@@ -3,6 +3,7 @@ module github.com/HuguesGuilleus/blache
 go 1.16
 
 require (
+	github.com/clarkmcc/go-typescript v0.5.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/neelance/parallel v0.0.0-20160708114440-4de9ce63d14c // indirect
@@ -15,6 +16,7 @@ require (
 	github.com/sourcegraph/go-langserver v2.0.0+incompatible // indirect
 	github.com/sourcegraph/jsonrpc2 v0.1.0 // indirect
 	github.com/stretchr/testify v1.7.0
+	github.com/tdewolff/minify/v2 v2.11.2 // indirect
 	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 	golang.org/x/sys v0.0.0-20220519141025-dcacdad47464 // indirect
 	golang.org/x/tools v0.1.10 // indirect
