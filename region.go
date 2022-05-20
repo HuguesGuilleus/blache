@@ -22,7 +22,7 @@ func (g *generator) readRegion(root string, entry fs.DirEntry) {
 	inputInfo, _ := entry.Info()
 	if outputInfo != nil && inputInfo != nil && outputInfo.ModTime().After(inputInfo.ModTime()) {
 		fmt.Fprintf(g.LogOutput, "cache region (%d,%d)\n", x, z)
-		g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
+		g.allRegion = append(g.allRegion, fmt.Sprintf("%d.%d", x, z))
 		return
 	}
 
