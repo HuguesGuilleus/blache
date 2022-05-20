@@ -14,6 +14,7 @@ type Region struct {
 	Biome  Image
 	Bloc   Image
 	Height Image
+	Water  Image
 
 	// Founded structures
 	Structures []Structure
@@ -30,6 +31,7 @@ func New(data []byte) (r *Region, errList []error) {
 		Biome:  Image{palette: minecraftColor.BiomePalette},
 		Bloc:   Image{palette: minecraftColor.BlockPalette},
 		Height: Image{palette: minecraftColor.HeightPalette},
+		Water:  Image{palette: minecraftColor.WaterPalette},
 	}
 
 	buff := bytes.Buffer{}

@@ -68,5 +68,6 @@ func (g *generator) parseRegion(x, z int, data []byte) {
 	g.saveFile("biome", imageName, r.Biome.BytesPNG())
 	g.saveFile("bloc", imageName, r.Bloc.BytesPNG())
 	g.saveFile("height", imageName, r.Height.BytesPNG())
+	g.saveFile("water", imageName, r.Water.BytesPNG())
 	g.saveFile("structs", fmt.Sprintf("%d.%d.json", x, z), r.StructuresJSON())
 }

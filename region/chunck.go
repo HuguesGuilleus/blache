@@ -36,13 +36,13 @@ func parseChunck(r *Region, x, z int, raw []byte, buff *bytes.Buffer) error {
 		return err
 	}
 
-	drawBlockAndHeight(&c, r.Bloc.chunck(x, z), r.Height.chunck(x, z))
+	drawBlockAndHeight(&c, r.Bloc.chunck(x, z), r.Height.chunck(x, z), r.Water.chunck(x, z))
 
 	return nil
 }
 
 // Draw bloc and height tiles.
-func drawBlockAndHeight(c *chunck.Chunck, bloc, height []uint8) {
+func drawBlockAndHeight(c *chunck.Chunck, bloc, height, water []uint8) {
 	palette := genPalette(c)
 	for x := 0; x < 16; x++ {
 	nextBloc:
@@ -58,7 +58,11 @@ func drawBlockAndHeight(c *chunck.Chunck, bloc, height []uint8) {
 						continue
 					}
 					i := uint64(sec.BlockStates[p/nb]>>(p%nb*size)) & mask
-					if col := colors[i]; col != 0 {
+					switch col := colors[i]; col {
+					case 0:
+					case minecraftColor.WaterIndex:
+						water[z*16+x] = minecraftColor.HasWater
+					default:
 						bloc[z*16+x] = col
 						h := sec.Y*16 + uint8(y)
 						height[z*16+x] = h

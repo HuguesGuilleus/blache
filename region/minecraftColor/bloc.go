@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+const WaterIndex = 12
+
 // Get the color index in the BlockPalette from his name. Return 0 if not found.
 func BlocColorIndex(n string) uint8 {
 	return BlocColorList[strings.TrimPrefix(n, "minecraft:")]
@@ -329,13 +331,13 @@ var BlocColorList = map[string]uint8{
 	"stonecutter":              11,
 	"water_cauldron":           11,
 	// 12 WATER
-	"bubble_column": 12,
-	"flowing_water": 12,
-	"kelp_plant":    12,
-	"kelp":          12,
-	"seagrass":      12,
-	"tall_seagrass": 12,
-	"water":         12,
+	"bubble_column": WaterIndex,
+	"flowing_water": WaterIndex,
+	"kelp_plant":    WaterIndex,
+	"kelp":          WaterIndex,
+	"seagrass":      WaterIndex,
+	"tall_seagrass": WaterIndex,
+	"water":         WaterIndex,
 	// 13 WOOD
 	"bamboo_sapling":     13,
 	"barrel":             13,

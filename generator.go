@@ -63,7 +63,7 @@ func Generate(option Option) []error {
 
 // Write directory and assets.
 func (g *generator) writeAssets() error {
-	for _, d := range [...]string{"bloc", "biome", "height", "structs"} {
+	for _, d := range [...]string{"bloc", "biome", "height", "structs", "water"} {
 		if err := g.Output.MkdirAll(d); err != nil {
 			return fmt.Errorf("Write directory %q fail: %w", d, err)
 		}
