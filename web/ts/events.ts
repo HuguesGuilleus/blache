@@ -13,13 +13,13 @@ function main() {
 		coordsStruct = $("coordsStruct");
 
 	$("tileTypeBloc").addEventListener("click", () =>
-		canvas.changeType(TileType.bloc)
+		canvas.changeType(UserTileType.bloc)
 	);
 	$("tileTypeBiome").addEventListener("click", () =>
-		canvas.changeType(TileType.biome)
+		canvas.changeType(UserTileType.biome)
 	);
 	$("tileTypeHeight").addEventListener("click", () =>
-		canvas.changeType(TileType.height)
+		canvas.changeType(UserTileType.height)
 	);
 	$("savePNG").addEventListener("click", () => canvas.userDownload());
 

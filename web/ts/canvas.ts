@@ -1,12 +1,18 @@
 /// The with or height of one in block unit.
 const REGION_SIZE: number = 16 * 32;
 
-/// The type of a tile. Note that water tiles are display over other tile.
-enum TileType {
-	bloc = 'bloc',
-	biome = 'biome',
-	height = 'height',
-	water = 'water',
+/// The type of a tile.
+type TileType = UserTileType | WaterTileType;
+
+/// The user type of a tile, used in background.
+enum UserTileType {
+	bloc = "bloc",
+	biome = "biome",
+	height = "height",
+}
+
+enum WaterTileType {
+	water = "water",
 }
 
 /// A minecraft structure.
@@ -61,7 +67,7 @@ class Canvas {
 	public size: number = REGION_SIZE;
 
 
-	private type: TileType = TileType.bloc;
+	private type: TileType = UserTileType.bloc;
 
 	/// To display or not frontiers, structures and water. After change,
 	/// call drawAll method.
@@ -74,10 +80,10 @@ class Canvas {
 
 	/// Regions tiles.
 	private readonly regions = {
-		[TileType.bloc]: new Map<string, HTMLImageElement>(),
-		[TileType.biome]: new Map<string, HTMLImageElement>(),
-		[TileType.height]: new Map<string, HTMLImageElement>(),
-		[TileType.water]: new Map<string, HTMLImageElement>(),
+		[UserTileType.bloc]: new Map<string, HTMLImageElement>(),
+		[UserTileType.biome]: new Map<string, HTMLImageElement>(),
+		[UserTileType.height]: new Map<string, HTMLImageElement>(),
+		[WaterTileType.water]: new Map<string, HTMLImageElement>(),
 	};
 
 	/// List of minecraft structure.
@@ -171,7 +177,7 @@ class Canvas {
 
 		this.drawImage(this.getTile(coord, this.type), relativeX, relativeZ);
 		if (this.enabledWater) {
-			this.drawImage(this.getTile(coord, TileType.water), relativeX, relativeZ);
+			this.drawImage(this.getTile(coord, WaterTileType.water), relativeX, relativeZ);
 		}
 
 		if (this.enabledFrontier && this.size > 32) {
