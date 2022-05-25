@@ -1,0 +1,14 @@
+{
+	"compilerOptions":
+	{
+		"removeComments": false,
+		"lib": ["es2018", "dom"],
+		"outFile": "../app.js",
+		"target": "ES5",
+		"downlevelIteration": true,
+		"strict": true
+	},
+	"include": [
+		"*"
+	]
+}

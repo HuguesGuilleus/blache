@@ -17,14 +17,19 @@
 		<li class="tileType" id=tileTypeHeight>
 			<img class="tileTypeImg" src="height/0.0.png" title="Height">
 		<li>
-			<input type="checkbox" id=enableStruct checked>
-			<label for=enableStruct>Print structures</label>
+			<input type=checkbox id=enabledFrontier checked>
+			<label for=enabledFrontier>Print region frontier (F)</label>
 		<li>
-			<input type="checkbox" id=enableFrontier checked>
-			<label for=enableFrontier>Print region frontier</label>
+			<input type=checkbox id=enabledStructure checked>
+			<label for=enabledStructure>Print structures (X)</label>
+		<li>
+			<input type=checkbox id=enabledWater checked>
+			<label for=enabledWater>Print water mask (W)</label>
 		<li class="coord">Region: <span class="coordValue" id=coordsRegion></span></li>
 		<li class="coord">Bloc: <span class="coordValue" id=coordsBloc></span></li>
 		<li class="coord">Structure: <span class="coordValue" id=coordsStruct></span></li>
+		<li>
+			<button type=button id=savePNG>Save the map in PNG</button>
 	</ul>
 	<canvas id="canvas2d" width="300" height="300"></canvas>
 </body>
