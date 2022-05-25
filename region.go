@@ -22,7 +22,7 @@ func (g *generator) readRegion(root string, entry fs.DirEntry) {
 	inputInfo, _ := entry.Info()
 	if outputInfo != nil && inputInfo != nil && outputInfo.ModTime().After(inputInfo.ModTime()) {
 		fmt.Fprintf(g.LogOutput, "cache region (%d,%d)\n", x, z)
-		g.allRegion = append(g.allRegion, fmt.Sprintf("%d.%d", x, z))
+		g.addRegionCoord(x, z)
 		return
 	}
 
@@ -37,8 +37,12 @@ func (g *generator) readRegion(root string, entry fs.DirEntry) {
 
 	g.wg.Add(1)
 	g.regionTotal++
-	g.allRegion = append(g.allRegion, fmt.Sprintf("%d,%d", x, z))
+	g.addRegionCoord(x, z)
 	go g.parseRegion(x, z, data)
+}
+
+func (g *generator) addRegionCoord(x, z int) {
+	g.allRegion = append(g.allRegion, fmt.Sprintf("%d.%d", x, z))
 }
 
 // Ask to region.New() to draw image and found structure from the data region.
