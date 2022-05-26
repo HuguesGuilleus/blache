@@ -6,3 +6,12 @@ Create a static web site from a minecraft 1.16 map.
 
 ![Example](https://github.com/HuguesGuilleus/blache/blob/master/capture.png?raw=true)
 
+# Build
+
+```sh
+# Generate web/app.js
+go generate ./web/
+
+# Go build
+go build cmd/blache.go
+```
