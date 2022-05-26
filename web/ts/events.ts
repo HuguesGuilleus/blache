@@ -7,21 +7,31 @@ function $(id: string): HTMLElement {
 
 // Create the canvas and add user event handler.
 function main() {
-	const canvas = new Canvas(<HTMLCanvasElement>$("canvas2d")),
+	const canvas = new Canvas(<HTMLCanvasElement>$("canvas2d"), coordURL.parse(location.hash)),
 		coordsBloc = $("coordsBloc"),
 		coordsRegion = $("coordsRegion"),
-		coordsStruct = $("coordsStruct");
+		coordsStruct = $("coordsStruct"),
+		url = <HTMLAnchorElement>$("url");
 
 	$("tileTypeBloc").addEventListener("click", () =>
-		canvas.changeType(UserTileType.bloc)
+		canvas.type = UserTileType.bloc
 	);
 	$("tileTypeBiome").addEventListener("click", () =>
-		canvas.changeType(UserTileType.biome)
+		canvas.type = UserTileType.biome
 	);
 	$("tileTypeHeight").addEventListener("click", () =>
-		canvas.changeType(UserTileType.height)
+		canvas.type = UserTileType.height
 	);
 	$("savePNG").addEventListener("click", () => canvas.userDownload());
+
+	url.addEventListener("click", event => {
+		event.preventDefault();
+		navigator.clipboard.writeText(url.href);
+	});
+	canvas.onDrawAll.push(() => {
+		url.href = coordURL.url(canvas);
+		url.innerText = coordURL.hash(canvas);
+	});
 
 	type enbaleProperties = "enabledFrontier" | "enabledStructure" | "enabledWater";
 	function button(prop: enbaleProperties): () => void {
@@ -82,6 +92,12 @@ function main() {
 	});
 
 	canvas.canvasElement.addEventListener("mousemove", event => {
+		if (event.buttons) {
+			canvas.positionX -= event.movementX;
+			canvas.positionZ -= event.movementY;
+			canvas.drawAll();
+		}
+
 		const x = Math.trunc((canvas.positionX + event.x) * REGION_SIZE / canvas.size),
 			z = Math.trunc((canvas.positionZ + event.y) * REGION_SIZE / canvas.size),
 			regionCoordX = Math.floor(x / REGION_SIZE),
@@ -98,11 +114,6 @@ function main() {
 				break;
 			}
 		}
-
-		if (!event.buttons) return;
-		canvas.positionX -= event.movementX;
-		canvas.positionZ -= event.movementY;
-		canvas.drawAll();
 	});
 
 	canvas.canvasElement.addEventListener("wheel", event => {

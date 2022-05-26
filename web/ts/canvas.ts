@@ -66,8 +66,19 @@ class Canvas {
 	/// change value.
 	public size: number = REGION_SIZE;
 
+	private static readonly sizeMax: number = REGION_SIZE * 16;
+	private static readonly sizeMin: number = REGION_SIZE / 16;
 
-	private type: TileType = UserTileType.bloc;
+	private _type: UserTileType = UserTileType.bloc;
+	public get type(): UserTileType {
+		return this._type;
+	}
+	public set type(type: UserTileType) {
+		if (this._type != type) {
+			this._type = type;
+			this.drawAll();
+		}
+	}
 
 	/// To display or not frontiers, structures and water. After change,
 	/// call drawAll method.
@@ -89,12 +100,22 @@ class Canvas {
 	/// List of minecraft structure.
 	public readonly structures = new Map<string, Structure[]>();
 
-	constructor(canvas: HTMLCanvasElement) {
+	/// List of handler called when drawAll if called.
+	public onDrawAll: (() => void)[] = [];
+
+	constructor(canvas: HTMLCanvasElement, params: [UserTileType, number, number, number]) {
 		const ctx = canvas.getContext('2d');
 		if (!ctx) throw "Fail to create 2D draw context";
 
 		this.canvasElement = canvas;
 		this.canvasContext = ctx;
+
+		[this.type, this.size, this.positionX, this.positionZ] = params;
+		if (this.size > Canvas.sizeMax) {
+			this.size = Canvas.sizeMax;
+		} else if (this.size < Canvas.sizeMin) {
+			this.size = Canvas.sizeMin;
+		}
 
 		this.blackAll();
 		this.fetchRegion();
@@ -107,13 +128,6 @@ class Canvas {
 		this.drawAll();
 	}
 
-	/// Change the tile (if diffrent), and call darwAll.
-	public changeType(type: TileType): void {
-		if (type != this.type) {
-			this.type = type;
-			this.drawAll();
-		}
-	}
 	public zoomIn(w: number, h: number): void {
 		if (this.size > REGION_SIZE * 16) return;
 		this.positionX = this.positionX * 2 + w;
@@ -159,6 +173,10 @@ class Canvas {
 			) {
 				this.drawRegion(coord);
 			}
+		}
+
+		for (const f of this.onDrawAll) {
+			f();
 		}
 	}
 
