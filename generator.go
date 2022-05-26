@@ -13,6 +13,15 @@ import (
 	"time"
 )
 
+const (
+	// The name of iamge or JSON directorys
+	dirBiome   = "biome"
+	dirBloc    = "bloc"
+	dirHeight  = "height"
+	dirStructs = "structs"
+	dirWater   = "water"
+)
+
 type generator struct {
 	Option
 	wg sync.WaitGroup
@@ -63,7 +72,7 @@ func Generate(option Option) []error {
 
 // Write directory and assets.
 func (g *generator) writeAssets() error {
-	for _, d := range [...]string{"bloc", "biome", "height", "structs", "water"} {
+	for _, d := range [...]string{dirBloc, dirBiome, dirHeight, dirStructs, dirWater} {
 		if err := g.Output.MkdirAll(d); err != nil {
 			return fmt.Errorf("Write directory %q fail: %w", d, err)
 		}
