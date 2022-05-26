@@ -8,13 +8,13 @@ body {
 
 #aside {
 	position: fixed;
-	left: 1ex;
+	margin: 0;
 	top: 2ex;
-	border-radius: 0.7ex;
-	padding: 0.7ex;
-	font-size: normal;
+	padding: 0.9ex;
+	font-size: small;
 	list-style: none;
-	background: gainsboro;
+	color: white;
+	background: #222;
 }
 
 hr {
