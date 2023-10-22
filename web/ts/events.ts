@@ -7,24 +7,30 @@ function $(id: string): HTMLElement {
 
 // Create the canvas and add user event handler.
 function main() {
-	const canvas = new Canvas(<HTMLCanvasElement>$("canvas2d"), coordURL.parse(location.hash)),
+	const canvas = new Canvas(
+		<HTMLCanvasElement>$("canvas2d"),
+		coordURL.parse(location.hash),
+	),
 		coordsBloc = $("coordsBloc"),
 		coordsRegion = $("coordsRegion"),
 		coordsStruct = $("coordsStruct"),
 		url = <HTMLAnchorElement>$("url");
 
-	$("tileTypeBloc").addEventListener("click", () =>
-		canvas.type = UserTileType.bloc
+	$("tileTypeBloc").addEventListener(
+		"click",
+		() => canvas.type = UserTileType.bloc,
 	);
-	$("tileTypeBiome").addEventListener("click", () =>
-		canvas.type = UserTileType.biome
+	$("tileTypeBiome").addEventListener(
+		"click",
+		() => canvas.type = UserTileType.biome,
 	);
-	$("tileTypeHeight").addEventListener("click", () =>
-		canvas.type = UserTileType.height
+	$("tileTypeHeight").addEventListener(
+		"click",
+		() => canvas.type = UserTileType.height,
 	);
 	$("savePNG").addEventListener("click", () => canvas.userDownload());
 
-	url.addEventListener("click", event => {
+	url.addEventListener("click", (event) => {
 		event.preventDefault();
 		navigator.clipboard.writeText(url.href);
 	});
@@ -33,7 +39,10 @@ function main() {
 		url.innerText = coordURL.hash(canvas);
 	});
 
-	type enbaleProperties = "enabledFrontier" | "enabledStructure" | "enabledWater";
+	type enbaleProperties =
+		| "enabledFrontier"
+		| "enabledStructure"
+		| "enabledWater";
 	function button(prop: enbaleProperties): () => void {
 		const input = <HTMLInputElement>$(prop);
 		canvas[prop] = input.checked;
@@ -50,39 +59,53 @@ function main() {
 		switchStructure = button("enabledStructure"),
 		switchWater = button("enabledWater");
 
-	window.addEventListener("keydown", e => {
-		switch (e.key) {
-			case "f": return switchFrontier();
-			case "w": return switchWater();
-			case "x": return switchStructure();
-			case "s": return canvas.userDownload();
-
-			case "-": return canvas.zoomOut(
-				canvas.canvasElement.width / 2,
-				canvas.canvasElement.height / 2
-			);
-			case "+": return canvas.zoomIn(
-				canvas.canvasElement.width / 2,
-				canvas.canvasElement.height / 2
-			);
-			case "ArrowLeft":
+	window.addEventListener("keydown", (e) => {
+		switch (e.key.toLowerCase()) {
+			case "b":
+				canvas.type = UserTileType.bloc;
+				break;
+			case "h":
+				canvas.type = UserTileType.height;
+				break;
+			case "n":
+				canvas.type = UserTileType.biome;
+				break;
+			case "f":
+				return switchFrontier();
+			case "w":
+				return switchWater();
+			case "x":
+				return switchStructure();
+			case "s":
+				return canvas.userDownload();
+			case "-":
+				return canvas.zoomOut(
+					canvas.canvasElement.width / 2,
+					canvas.canvasElement.height / 2,
+				);
+			case "+":
+				return canvas.zoomIn(
+					canvas.canvasElement.width / 2,
+					canvas.canvasElement.height / 2,
+				);
+			case "arrowleft":
 				canvas.positionX -= canvas.size / 4;
 				break;
-			case "ArrowRight":
+			case "arrowright":
 				canvas.positionX += canvas.size / 4;
 				break;
-			case "ArrowUp":
+			case "arrowup":
 				canvas.positionZ -= canvas.size / 4;
 				break;
-			case "ArrowDown":
+			case "arrowdown":
 				canvas.positionZ += canvas.size / 4;
 				break;
 			case "0":
 				canvas.positionX = canvas.positionZ = 0;
 				canvas.size = REGION_SIZE;
 				break;
-
-			default: return;
+			default:
+				return;
 		}
 
 		coordsBloc.innerText = "";
@@ -91,14 +114,16 @@ function main() {
 		canvas.drawAll();
 	});
 
-	canvas.canvasElement.addEventListener("mousemove", event => {
+	canvas.canvasElement.addEventListener("mousemove", (event) => {
 		if (event.buttons) {
 			canvas.positionX -= event.movementX;
 			canvas.positionZ -= event.movementY;
 			canvas.drawAll();
 		}
 
-		const x = Math.trunc((canvas.positionX + event.x) * REGION_SIZE / canvas.size),
+		const x = Math.trunc(
+			(canvas.positionX + event.x) * REGION_SIZE / canvas.size,
+		),
 			z = Math.trunc((canvas.positionZ + event.y) * REGION_SIZE / canvas.size),
 			regionCoordX = Math.floor(x / REGION_SIZE),
 			regionCoordZ = Math.floor(z / REGION_SIZE),
@@ -107,16 +132,23 @@ function main() {
 
 		coordsBloc.innerText = `${x}, ${z}`;
 		coordsRegion.innerText = `${regionCoordX}, ${regionCoordZ}`;
-		coordsStruct.innerText = '';
-		for (const s of (canvas.structures.get(Coordinate.stringer(regionCoordX, regionCoordZ)) ?? [])) {
-			if (Math.abs(insideRegionX - s.x * 16) < 10 && Math.abs(insideRegionZ - s.z * 16) < 10) {
+		coordsStruct.innerText = "";
+		for (
+			const s of (canvas.structures.get(
+				Coordinate.stringer(regionCoordX, regionCoordZ),
+			) ?? [])
+		) {
+			if (
+				Math.abs(insideRegionX - s.x * 16) < 10 &&
+				Math.abs(insideRegionZ - s.z * 16) < 10
+			) {
 				coordsStruct.innerText = s.name;
 				break;
 			}
 		}
 	});
 
-	canvas.canvasElement.addEventListener("wheel", event => {
+	canvas.canvasElement.addEventListener("wheel", (event) => {
 		const d = event.deltaY;
 		if (d > 0) {
 			canvas.zoomOut(event.x, event.y);
@@ -131,6 +163,6 @@ function main() {
 
 document.readyState == "loading"
 	? document.addEventListener("DOMContentLoaded", main, {
-		once: true
+		once: true,
 	})
 	: main();

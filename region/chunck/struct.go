@@ -88,7 +88,7 @@ func (c *Chunck) nbtLevelStructure(tagType byte, name string, r *reader) error {
 			if tagType != tagCompound {
 				return skipNode
 			}
-			r.readCompound(func(tagType byte, name string, r *reader) error {
+			return r.readCompound(func(tagType byte, name string, r *reader) error {
 				if tagType != tagString || name != "id" {
 					return skipNode
 				} else if s, err := r.readString(); err != nil {
@@ -99,7 +99,6 @@ func (c *Chunck) nbtLevelStructure(tagType byte, name string, r *reader) error {
 				starts[structureName] = struct{}{}
 				return nil
 			})
-			return nil
 		})
 	default:
 		return skipNode

@@ -11,10 +11,9 @@ body {
 	margin: 0;
 	top: 2ex;
 	padding: 0.9ex;
-	font-size: small;
 	list-style: none;
-	color: white;
-	background: #222;
+	color: #111;
+	background: #DDD;
 }
 
 hr {
@@ -25,7 +24,7 @@ hr {
 /* Coord */
 
 .coord {
-	text-align: rights;
+	text-align: right;
 }
 
 .coordValue {
@@ -41,6 +40,7 @@ hr {
 	margin: 0 1ex;
 	width: 6ex;
 }
+
 #tileTypeBloc {
 	margin-left: 0;
 }
@@ -48,8 +48,10 @@ hr {
 .tileTypeImg {
 	width: 100%;
 	box-sizing: border-box;
+	border: transparent 0.5ex solid;
 	border-radius: 0.5ex;
 }
+
 .tileTypeImg:hover {
-	border: dodgerblue 0.5ex solid;
+	border-color: dodgerblue;
 }
