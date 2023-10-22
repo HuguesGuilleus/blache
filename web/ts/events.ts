@@ -148,6 +148,51 @@ function main() {
 		}
 	});
 
+	let lastTouch: Touch | null = null;
+	let lastHypot!: number;
+	canvas.canvasElement.addEventListener("touchstart", event => {
+		lastTouch = null;
+		lastHypot = NaN;
+		const { length } = event.touches;
+		if (length === 1) {
+			lastTouch = event.touches[0];
+		} else if (length === 2) {
+			const t0 = event.touches[0], t1 = event.touches[1];
+			lastHypot = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY)
+		}
+	});
+	canvas.canvasElement.addEventListener("touchmove", event => {
+		event.preventDefault();
+		const { length } = event.touches;
+		if (length === 1 && lastTouch !== null) {
+			const t = event.touches[0];
+			canvas.positionX -= t.clientX - lastTouch.clientX;
+			canvas.positionZ -= t.clientY - lastTouch.clientY;
+			canvas.drawAll();
+			lastTouch = t;
+		} else {
+			lastTouch = null;
+			if (length !== 0) {
+				const t0 = event.touches[0], t1 = event.touches[1];
+				const hypot = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+				const limit = Math.hypot(canvas.canvasElement.width, canvas.canvasElement.height) / 10;
+				if (hypot > limit + lastHypot) {
+					lastHypot = hypot;
+					canvas.zoomIn(
+						canvas.canvasElement.width / 2,
+						canvas.canvasElement.height / 2,
+					)
+				} else if (hypot + limit < lastHypot) {
+					lastHypot = hypot;
+					canvas.zoomOut(
+						canvas.canvasElement.width / 2,
+						canvas.canvasElement.height / 2,
+					)
+				}
+			}
+		}
+	});
+
 	canvas.canvasElement.addEventListener("wheel", (event) => {
 		const d = event.deltaY;
 		if (d > 0) {
